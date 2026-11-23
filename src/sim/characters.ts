@@ -15,7 +15,7 @@ function normals(a: Arch): Record<string, MoveDef> {
   const fx = a.sword ? 'slash' : 'hit';
   const d = (n: number) => Math.round(n * P * 10) / 10;
   return {
-    jab: { id: 'jab', name: 'Jab', total: t(18), limb: a.sword ? 'armF' : 'armF', hitboxes: [hb(t(3), t(5), 40 * R, -56, 18 * R, d(3.5), 50, 22, 45, { fx })] },
+    jab: { id: 'jab', name: 'Jab', total: t(16), limb: 'armF', hitboxes: [hb(t(3), t(5), 40 * R, -56, 20 * R, d(3), 18, 14, 30, { fx })] },
     ftilt: { id: 'ftilt', name: 'Forward Tilt', total: t(28), limb: a.sword ? 'armF' : 'legF', hitboxes: [hb(t(7), t(10), 55 * R, -48, 20 * R, d(9), 35, 26, 92, { fx }), hb(t(7), t(10), 25 * R, -48, 16, d(7), 35, 20, 85, { fx })] },
     utilt: { id: 'utilt', name: 'Up Tilt', total: t(28), limb: 'armF', hitboxes: [hb(t(6), t(11), 12 * R, -112, 26 * R, d(7.5), 88, 32, 102, { fx }), hb(t(6), t(8), 35, -80, 20, d(6), 95, 30, 100, { fx })] },
     dtilt: { id: 'dtilt', name: 'Down Tilt', total: t(22), limb: 'legF', hitboxes: [hb(t(5), t(8), 55 * R, -14, 18 * R, d(6), 76, 36, 62, { fx })] },
@@ -26,7 +26,7 @@ function normals(a: Arch): Record<string, MoveDef> {
     nair: { id: 'nair', name: 'Neutral Air', total: t(36), air: true, landingLag: 8, limb: 'spin', hitboxes: [hb(t(6), t(10), 0, -50, 42 * R, d(8.5), 40, 22, 92, { fx }), hb(t(11), t(22), 0, -50, 36 * R, d(5), 40, 15, 80, { fx })] },
     fair: { id: 'fair', name: 'Forward Air', total: t(38), air: true, landingLag: 12, limb: a.sword ? 'armF' : 'armF', hitboxes: [hb(t(9), t(12), 54 * R, -56, 26 * R, d(12), 40, 30, 96, { fx, lag: 1.1 })] },
     bair: { id: 'bair', name: 'Back Air', total: t(34), air: true, landingLag: 10, limb: 'legB', hitboxes: [hb(t(7), t(10), -56 * R, -50, 24 * R, d(13), 142, 30, 100, { fx, lag: 1.1 })] },
-    uair: { id: 'uair', name: 'Up Air', total: t(32), air: true, landingLag: 8, limb: 'legF', hitboxes: [hb(t(5), t(9), 0, -112 * R, 28 * R, d(9), 86, 30, 96, { fx })] },
+    uair: { id: 'uair', name: 'Up Air', total: t(32), air: true, landingLag: 8, limb: 'armF', hitboxes: [hb(t(5), t(9), 14, -112 * R, 28 * R, d(9), 86, 30, 96, { fx })] },
     dair: { id: 'dair', name: 'Down Air', total: t(44), air: true, landingLag: 16, limb: 'legF', hitboxes: [hb(t(12), t(15), 0, 8, 26 * R, d(14), 270, 22, 82, { fx, lag: 1.2 }), hb(t(16), t(22), 0, 0, 22 * R, d(8), 290, 18, 70, { fx })] },
     ledge: { id: 'ledge', name: 'Ledge Attack', total: 40, limb: 'legF', invuln: [1, 14], hitboxes: [hb(16, 19, 45, -30, 30, d(8), 40, 50, 30, { fx })] },
     getup: { id: 'getup', name: 'Getup Attack', total: 36, limb: 'both', invuln: [1, 16], hitboxes: [hb(14, 16, 48, -20, 26, d(7), 40, 50, 30, { fx }), hb(18, 20, -48, -20, 26, d(7), 140, 50, 30, { fx })] },
@@ -82,12 +82,12 @@ export const CHARACTERS: CharDef[] = [];
     id: 'nova', name: 'Nova', title: 'The Star Pilot', starter: true,
     blurb: 'A balanced pilot with a plasma blaster and a comet-fast dash. Great for learning.',
     stats: stats({}),
-    visual: vis({ body: '#2d6cdf', accent: '#7fe3ff', skin: '#f2c9a0', dark: '#132a5e', head: 'helmet', accessory: 'visor', bulk: 1, fx: 'elec' }),
+    visual: vis({ body: '#2d6cdf', accent: '#7fe3ff', skin: '#f2c9a0', dark: '#132a5e', head: 'helmet', accessory: 'visor', bulk: 1, fx: 'elec', glove: '#f4f7ff', boot: '#f4f7ff', hair: '#2b2b40', eye: '#1a1a2e', cape: null, emblem: 'star', shoulder: 15, waist: 11, glow: '#7fe3ff' }),
     moves: m, ratings: { speed: 3, power: 3, weight: 3, air: 3 },
   });
 }
 
-// ---- 2. BRICK — heavy hitter (starter)
+// ---- 2. GRANITE (id 'brick' kept for save compatibility) — heavy hitter (starter)
 {
   const m = normals({ reach: 1.12, power: 1.18, speed: 0.85, fx: 'hit' });
   m.nspec = {
@@ -121,10 +121,10 @@ export const CHARACTERS: CharDef[] = [];
   // airborne quake stomp spike
   m.dspec.hitboxes.push(hb(9, 30, 0, 0, 34, 14, 270, 30, 80, { g: 2, lag: 1.3 }));
   CHARACTERS.push({
-    id: 'brick', name: 'Brick', title: 'The Iron Titan', starter: true,
-    blurb: 'Slow, heavy and devastating. Armored charges and earth-shaking stomps.',
-    stats: stats({ walk: 2.6, run: 5.8, air: 2.7, airAccel: 0.26, gravity: 0.72, fall: 13, fastFall: 19, jump: 16.5, shortHop: 10.5, djump: 15, weight: 135, traction: 0.8, size: 1.18, power: 1.0, jumpSquat: 4 }),
-    visual: vis({ body: '#8a5a2b', accent: '#ffb347', skin: '#b98a5e', dark: '#3d2610', head: 'square', accessory: 'shoulders', bulk: 1.5, fx: 'hit' }),
+    id: 'brick', name: 'Granite', title: 'The Walking Quarry', starter: true,
+    blurb: 'A seven-foot golem of weathered rock and pulsing magma. Armored charges and earth-shaking stomps.',
+    stats: stats({ walk: 2.6, run: 5.8, air: 2.7, airAccel: 0.26, gravity: 0.72, fall: 13, fastFall: 19, jump: 16.5, shortHop: 10.5, djump: 15, weight: 135, traction: 0.8, size: 1.24, power: 1.0, jumpSquat: 4 }),
+    visual: vis({ body: '#a39887', accent: '#ff6a1a', skin: '#a39887', dark: '#6e655a', head: 'square', accessory: 'shoulders', bulk: 1.6, fx: 'hit', glove: '#9a8f7e', boot: '#857b6d', hair: '#5d554b', eye: '#ffe14a', cape: null, emblem: 'gear', shoulder: 22, waist: 15, glow: '#ff8a2a', armor: '#8c8273', cracks: '#ff7a1f', fist: 1.7 }),
     moves: m, ratings: { speed: 1, power: 5, weight: 5, air: 2 },
   });
 }
@@ -153,10 +153,10 @@ export const CHARACTERS: CharDef[] = [];
     update: (f, _w, fr) => { if (!f.grounded && fr < 30) f.vy = Math.min(f.vy, 1.5); },
   };
   CHARACTERS.push({
-    id: 'zephyr', name: 'Zephyr', title: 'The Gale Ninja', starter: true,
+    id: 'zephyr', name: 'Zephyr', title: 'The Drifting Gale', starter: true,
     blurb: 'Light and blindingly fast with four jumps, wind blades and a perfect counter.',
     stats: stats({ walk: 4.2, run: 9, air: 4, airAccel: 0.46, gravity: 0.6, fall: 10.5, fastFall: 16, jump: 16.5, shortHop: 10.5, djump: 14.5, jumps: 4, weight: 78, traction: 0.5, size: 0.9 }),
-    visual: vis({ body: '#1f8a5b', accent: '#c6ffdf', skin: '#e9c19a', dark: '#0c3324', head: 'round', accessory: 'scarf', bulk: 0.85, fx: 'wind' }),
+    visual: vis({ body: '#7fe0b8', accent: '#c9d3dc', skin: '#f3d2b8', dark: '#2e8c88', head: 'round', accessory: 'scarf', bulk: 0.82, fx: 'wind', glove: '#2e8c88', boot: '#3aa89a', hair: '#efe4c8', eye: '#2f8f8c', cape: '#ff5fa8', emblem: 'wind', shoulder: 12.5, waist: 8.5, glow: '#a8fff0', armor: '#c9d3dc', hips: 2 }),
     moves: m, ratings: { speed: 5, power: 2, weight: 1, air: 5 },
   });
 }
@@ -195,10 +195,10 @@ export const CHARACTERS: CharDef[] = [];
     update: (f, _w, fr) => { if (!f.grounded && fr < 26) f.vy = Math.min(f.vy, 1.5); },
   };
   CHARACTERS.push({
-    id: 'volt', name: 'Volt', title: 'The Storm Caller', starter: true,
-    blurb: 'Controls space with ball lightning and long arcing whips. Reflects projectiles.',
+    id: 'volt', name: 'Volt', title: 'The Live Wire', starter: true,
+    blurb: 'A crackling armored brawler with ball lightning, a long arc lash and a projectile-reflecting static field.',
     stats: stats({ walk: 3.2, run: 6.6, air: 3.2, airAccel: 0.32, gravity: 0.58, fall: 10, fastFall: 16, jump: 17, weight: 92 }),
-    visual: vis({ body: '#f2c21b', accent: '#fff6a8', skin: '#ffd9b0', dark: '#5c4600', head: 'spiky', accessory: 'antenna', bulk: 0.95, fx: 'elec' }),
+    visual: vis({ body: '#55698a', accent: '#66d9ff', skin: '#f3c9a2', dark: '#3e4f6b', head: 'spiky', accessory: 'antenna', bulk: 0.95, fx: 'elec', glove: '#2a2d36', boot: '#2f323b', hair: '#ffc93a', eye: '#8ff0ff', cape: null, emblem: 'bolt', shoulder: 14.5, waist: 10, glow: '#9ff3ff', armor: '#f2b51b', chestPlate: true }),
     moves: m, ratings: { speed: 3, power: 3, weight: 2, air: 3 },
   });
 }
@@ -229,10 +229,10 @@ export const CHARACTERS: CharDef[] = [];
     update: (f, _w, fr) => { if (!f.grounded && fr < 24) f.vy = Math.min(f.vy, 2); },
   };
   CHARACTERS.push({
-    id: 'ember', name: 'Ember', title: 'The Blaze Brawler', starter: false,
+    id: 'ember', name: 'Ember', title: 'The Hearth Brawler', starter: false,
     blurb: 'Relentless pressure with bouncing fireballs, a spinning flame wheel and explosive bursts.',
     stats: stats({ walk: 3.8, run: 8.2, air: 3.6, airAccel: 0.4, gravity: 0.68, fall: 11.5, fastFall: 18, jump: 17, weight: 90, size: 0.96 }),
-    visual: vis({ body: '#d6331c', accent: '#ffcf3a', skin: '#f3c08f', dark: '#5a0f05', head: 'round', accessory: 'flame', bulk: 1, fx: 'fire' }),
+    visual: vis({ body: '#e8643c', accent: '#f2b33a', skin: '#e8643c', dark: '#36363d', head: 'round', accessory: 'flame', bulk: 1, fx: 'fire', glove: '#2e2a2a', boot: '#6b3f22', hair: '#ff8a1f', eye: '#ffd23f', cape: null, emblem: 'flame', shoulder: 14, waist: 10, glow: '#ffae3a', bareTorso: true, fist: 1.25 }),
     moves: m, ratings: { speed: 4, power: 4, weight: 2, air: 3 },
   });
 }
@@ -266,7 +266,7 @@ export const CHARACTERS: CharDef[] = [];
     id: 'glacia', name: 'Glacia', title: 'The Frost Sovereign', starter: false,
     blurb: 'Freezing lances lock foes in place; her crystal shield reflects and absorbs.',
     stats: stats({ walk: 3, run: 6.3, air: 3, airAccel: 0.3, gravity: 0.55, fall: 9.5, fastFall: 15, jump: 17.5, djump: 16.5, weight: 98 }),
-    visual: vis({ body: '#7ac8f0', accent: '#ffffff', skin: '#dfeefa', dark: '#1d4d6e', head: 'round', accessory: 'crystal', bulk: 0.95, fx: 'ice' }),
+    visual: vis({ body: '#7ac8f0', accent: '#ffffff', skin: '#dfeefa', dark: '#1d4d6e', head: 'round', accessory: 'crystal', bulk: 0.95, fx: 'ice', glove: '#ffffff', boot: '#d8f1ff', hair: '#eaf7ff', eye: '#1d78c8', cape: '#bfe8ff', emblem: 'snow', shoulder: 13.5, waist: 10, glow: '#a8ecff' }),
     moves: m, ratings: { speed: 2, power: 3, weight: 3, air: 4 },
   });
 }
@@ -297,7 +297,7 @@ export const CHARACTERS: CharDef[] = [];
     id: 'rook', name: 'Rook', title: 'The Oathsworn Knight', starter: false,
     blurb: 'Huge sword reach, a chargeable blade and a punishing riposte counter.',
     stats: stats({ walk: 3.1, run: 6.8, air: 3.1, airAccel: 0.3, gravity: 0.64, fall: 11, fastFall: 17, jump: 16.5, djump: 15.5, weight: 108, size: 1.06 }),
-    visual: vis({ body: '#5b6478', accent: '#e7c45a', skin: '#e9c7a3', dark: '#262b38', head: 'helmet', accessory: 'sword', bulk: 1.1, fx: 'slash' }),
+    visual: vis({ body: '#5b6478', accent: '#e7c45a', skin: '#e9c7a3', dark: '#262b38', head: 'helmet', accessory: 'sword', bulk: 1.1, fx: 'slash', glove: '#8b93a8', boot: '#3a4152', hair: '#c8102e', eye: '#ffe9a8', cape: '#9c1c2a', emblem: 'crest', shoulder: 16.5, waist: 12, glow: '#ffd76a' }),
     moves: m, ratings: { speed: 3, power: 4, weight: 4, air: 2 },
   });
 }
@@ -351,7 +351,7 @@ export const CHARACTERS: CharDef[] = [];
     id: 'omega', name: 'Omega', title: 'The Void Sovereign', starter: false,
     blurb: 'The orbit\'s final guardian. Warps through space and drags foes into a singularity.',
     stats: stats({ walk: 3, run: 7, air: 3.1, airAccel: 0.3, gravity: 0.62, fall: 11, fastFall: 17, jump: 17, weight: 118, size: 1.12, jumpSquat: 4 }),
-    visual: vis({ body: '#2a1640', accent: '#c04dff', skin: '#8f7aa8', dark: '#0e0618', head: 'spiky', accessory: 'horns', bulk: 1.25, fx: 'dark' }),
+    visual: vis({ body: '#2a1640', accent: '#c04dff', skin: '#8f7aa8', dark: '#0e0618', head: 'spiky', accessory: 'horns', bulk: 1.2, fx: 'dark', glove: '#120820', boot: '#120820', hair: '#0a0410', eye: '#ff3df0', cape: '#3b0f5c', emblem: 'void', shoulder: 18, waist: 12.5, glow: '#c04dff' }),
     moves: m, ratings: { speed: 3, power: 5, weight: 4, air: 3 },
   });
 }

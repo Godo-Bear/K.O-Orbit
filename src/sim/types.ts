@@ -55,6 +55,18 @@ export interface CharVisual {
   accessory: 'visor' | 'shoulders' | 'scarf' | 'antenna' | 'flame' | 'crystal' | 'sword' | 'horns';
   bulk: number; // limb thickness multiplier
   fx: Fx;
+  // --- costume detail (high-fidelity rig) ---
+  glove: string; boot: string; hair: string; eye: string;
+  cape: string | null; // cape / long cloth colour
+  emblem: 'star' | 'gear' | 'wind' | 'bolt' | 'flame' | 'snow' | 'crest' | 'void';
+  shoulder: number; waist: number; // torso half-widths
+  glow: string; // aura / energy colour
+  armor?: string; // gold/rock armour pieces (pauldrons, chest plate, knee guards)
+  chestPlate?: boolean;
+  bareTorso?: boolean; // torso drawn in skin tone (Ember)
+  cracks?: string; // glowing crack colour over body (Granite magma)
+  fist?: number; // hand size multiplier
+  hips?: number; // hip width bonus (silhouette)
 }
 
 export interface CharDef {

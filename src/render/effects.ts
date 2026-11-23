@@ -19,6 +19,8 @@ export class Effects {
   pool: Particle[] = [];
   private cursor = 0;
   activeCount = 0;
+  /** Particle density multiplier (visual intensity setting). */
+  density = 1;
   constructor() {
     for (let i = 0; i < POOL; i++) this.pool.push({ active: false, kind: 0, x: 0, y: 0, vx: 0, vy: 0, life: 0, max: 1, size: 1, grow: 0, rot: 0, color: '#fff', drag: 1, grav: 0 });
   }
@@ -38,7 +40,16 @@ export class Effects {
     p.active = true; p.kind = kind; p.x = x; p.y = y; p.vx = vx; p.vy = vy; p.life = life; p.max = life; p.size = size;
     p.color = color; p.grow = grow; p.drag = drag; p.grav = grav; p.rot = rot;
   }
+  /** Sparks biased along a direction (radians) — reads the launch angle at a glance. */
+  sparksDir(x: number, y: number, n: number, speed: number, colors: [string, string], dir: number, spread: number) {
+    n = Math.max(1, Math.round(n * this.density));
+    for (let i = 0; i < n; i++) {
+      const a = dir + (Math.random() - 0.5) * spread, s = speed * (0.6 + Math.random() * 0.9);
+      this.spawn(0, x, y, Math.cos(a) * s, Math.sin(a) * s, 10 + Math.random() * 12, 3 + Math.random() * 4, i % 3 ? colors[1] : colors[0], 0, 0.86, 0.1);
+    }
+  }
   sparks(x: number, y: number, n: number, speed: number, colors: [string, string]) {
+    n = Math.max(1, Math.round(n * this.density));
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2, s = speed * (0.4 + Math.random() * 0.8);
       this.spawn(0, x, y, Math.cos(a) * s, Math.sin(a) * s, 12 + Math.random() * 14, 3 + Math.random() * 3, i % 2 ? colors[0] : colors[1], 0, 0.88, 0.15);

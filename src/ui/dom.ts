@@ -186,13 +186,17 @@ export class MenuNav {
 
 export const nav = new MenuNav();
 
-/** Small canvas showing a fighter portrait (DPR-sharp). */
-export function portraitCanvas(size: number, draw: (ctx: CanvasRenderingContext2D, s: number) => void) {
-  const c = el('canvas', { class: 'portrait', width: String(size * 2), height: String(size * 2), style: `width:${size}px;height:${size}px` }) as HTMLCanvasElement;
-  const d = Math.min(3, window.devicePixelRatio || 1);
-  c.width = Math.round(size * d); c.height = Math.round(size * d);
+/** UI zoom applied on large / 4K viewports at 1× DPR so menus never look tiny. */
+export function uiZoom() { return Math.max(1, Math.min(2.2, Math.min(window.innerWidth / 1600, window.innerHeight / 940))); }
+export function applyUiZoom() { document.documentElement.style.setProperty('--ui-zoom', uiZoom().toFixed(3)); }
+
+/** Small canvas (DPR × UI-zoom sharp) for portraits, thumbnails and hero art. */
+export function portraitCanvas(size: number, draw: (ctx: CanvasRenderingContext2D, s: number, h: number) => void, height = size) {
+  const c = el('canvas', { class: 'portrait', style: `width:${size}px;height:${height}px` }) as HTMLCanvasElement;
+  const d = Math.min(4, (window.devicePixelRatio || 1) * uiZoom());
+  c.width = Math.round(size * d); c.height = Math.round(height * d);
   const ctx = c.getContext('2d')!;
   ctx.scale(d, d);
-  draw(ctx, size);
+  draw(ctx, size, height);
   return c;
 }

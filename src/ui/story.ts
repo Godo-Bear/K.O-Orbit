@@ -2,7 +2,7 @@ import { save } from '../core/save';
 import { DEVICE_IDS, deviceLabel, input } from '../core/input';
 import { CHARACTERS, charById } from '../sim/characters';
 import { stageById } from '../sim/stages';
-import { drawPortrait } from '../render/rig';
+import { drawPortrait, drawHeroCard } from '../render/rig';
 import type { SlotConfig } from '../sim/types';
 import { STORY, isStageUnlocked, isCharUnlocked, totalStars, type StoryStage } from '../story/campaign';
 import { el, btn, cycler, portraitCanvas, mount } from './dom';
@@ -68,7 +68,7 @@ export function storyMapScreen(app: App): HTMLElement {
       el('div', { class: 'muted small' }, `★★ take ≤ ${st.stars.damage} damage · ★★★ clear within ${st.stars.time}s`),
       st.reward ? el('div', { class: 'reward' }, '🔓 Reward: ', el('b', {}, isCharUnlocked(st.reward) ? `${charById(st.reward).name} (unlocked)` : `Unlock ${charById(st.reward).name}`)) : null,
       el('div', { class: 'brief-pick' },
-        el('div', { class: 'pick-portrait' }, portraitCanvas(70, (c, s) => drawPortrait(c, charById(pick.charId), s / 2, s * 0.03, s * 1.2))),
+        el('div', { class: 'pick-portrait' }, portraitCanvas(96, (c, wd, ht) => drawHeroCard(c, charById(pick.charId), wd, ht), 110)),
         el('div', { class: 'pick-cycs' },
           cycler('Fighter', CHARACTERS.map((c) => ({ v: c.id, label: isCharUnlocked(c.id) ? c.name : `🔒 ${c.name}`, disabled: !isCharUnlocked(c.id) })), pick.charId, (v) => { pick.charId = v; renderBrief(); }),
           cycler('Ctrl', DEVICE_IDS.map((d) => ({ v: d, label: deviceLabel(d) })), pick.device, (v) => { pick.device = v; }))),

@@ -14,6 +14,7 @@ export interface Settings {
   master: number; sfx: number; muted: boolean;
   showPerf: boolean; screenShake: boolean; renderScale: number;
   onlineServer: string; playerName: string; inputDelay: number;
+  intensity: number; // visual intensity: 2 full, 1 reduced, 0 minimal (flashes, shake, particles)
 }
 
 export interface StoryProgress { cleared: Record<string, number> } // stageId -> best stars (1..3)
@@ -59,6 +60,7 @@ function defaults(): SaveData {
     settings: {
       master: 0.7, sfx: 0.9, muted: false, showPerf: false, screenShake: true, renderScale: 1,
       onlineServer: '', playerName: 'Player', inputDelay: 2,
+      intensity: typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 2,
     },
     story: { cleared: {} },
     unlocked: [],

@@ -17,6 +17,7 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
 #game { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; display: block; touch-action: none; }
 .ui-root { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; z-index: 2; }
 .ui-root.hidden { display: none; }
+.ui-root > *, .pause-overlay > * { zoom: var(--ui-zoom, 1); }
 .ui-root:not(.title):not(.hidden) { background: radial-gradient(ellipse at center, rgba(10, 8, 32, 0.55), rgba(6, 4, 20, 0.88)); backdrop-filter: blur(2px); }
 .ui-root.wide { align-items: flex-start; }
 
@@ -66,7 +67,7 @@ button { font: inherit; color: inherit; }
 .mode-btn { display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 14px 22px; }
 .mode-title { font-size: 1.45rem; font-weight: 900; font-style: italic; letter-spacing: 0.05em; }
 .mode-desc { font-size: 0.85rem; color: var(--muted); font-weight: 500; }
-.mode-btn.m0 { border-left: 6px solid #ff4757; } .mode-btn.m1 { border-left: 6px solid #ffd23f; } .mode-btn.m2 { border-left: 6px solid #3ee8ff; } .mode-btn.m3 { border-left: 6px solid #2ed573; } .mode-btn.m4 { border-left: 6px solid #b06bff; }
+.mode-btn.m0 { border-left: 6px solid #ff4757; } .mode-btn.m1 { border-left: 6px solid #ffd23f; } .mode-btn.m2 { border-left: 6px solid #3ee8ff; } .mode-btn.m3 { border-left: 6px solid #2ed573; } .mode-btn.m4 { border-left: 6px solid #b06bff; } .mode-btn.m5 { border-left: 6px solid #ff8c1a; }
 
 /* ---------- cyclers ---------- */
 .cycler { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 2px solid transparent; cursor: default; user-select: none; min-width: 0; }
@@ -79,7 +80,7 @@ button { font: inherit; color: inherit; }
 
 /* ---------- versus ---------- */
 .rules-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.stage-row { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 8px; }
+.stage-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(136px, 1fr)); gap: 10px; padding: 4px 2px 8px; }
 .stage-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; min-width: 136px; }
 .stage-card canvas { border-radius: 8px; display: block; }
 .stage-card span { font-size: 0.8rem; }
@@ -94,7 +95,11 @@ button { font: inherit; color: inherit; }
 .slot-head b { color: var(--pc); font-size: 1.15rem; font-style: italic; font-weight: 900; }
 .type-cyc { flex: 1; }
 .slot-empty { color: var(--muted); font-size: 0.8rem; text-align: center; margin: auto 0; }
-.slot-portrait { display: flex; justify-content: center; background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%); border-radius: 10px; }
+.slot-portrait { display: flex; justify-content: center; border-radius: 10px; overflow: hidden; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--pc) 60%, transparent); }
+.slot-portrait canvas { width: 100% !important; height: auto !important; aspect-ratio: 150 / 118; }
+.pick-portrait canvas, .unlock-banner canvas { border-radius: 10px; }
+.win-row { display: flex; align-items: center; justify-content: center; gap: 18px; flex-wrap: wrap; }
+.win-hero canvas { border-radius: 16px; box-shadow: 0 0 0 3px var(--pc), 0 0 40px color-mix(in srgb, var(--pc) 50%, transparent); }
 .slot-card .cycler { width: 100%; }
 
 /* ---------- story ---------- */
@@ -213,3 +218,12 @@ button { font: inherit; color: inherit; }
   .panel-screen { padding: 14px; border-radius: 14px; }
   .btn.big { font-size: 1rem; padding: 12px 18px; }
 }
+
+/* ---------- practice ---------- */
+.practice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 900px) { .practice-grid { grid-template-columns: 1fr; } }
+.practice-col { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+.practice-col canvas { border-radius: 14px; align-self: center; }
+.practice-col .cycler { justify-content: space-between; }
+.practice-pause { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.practice-pause .cycler { justify-content: space-between; }

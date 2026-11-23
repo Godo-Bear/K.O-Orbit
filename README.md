@@ -1,6 +1,6 @@
 # K.O Orbit
 
-A fast, responsive platform fighter for the browser. It renders sharply at 4K, runs on a fixed 60 Hz timestep, and supports **up to 10 players (P1–P10)** locally and online. There are 8 fighters, 5 stages, and an 8-stage Story Mode that unlocks 4 of the fighters.
+A fast, responsive platform fighter for the browser. It renders sharply at 4K, runs on a fixed 60 Hz timestep, and supports **up to 10 players (P1–P10)** locally and online. There are 8 fighters, 10 stages, a Practice mode, and an 8-stage Story Mode that unlocks 4 of the fighters.
 
 ## Quick start
 
@@ -57,10 +57,37 @@ vite.config.ts   dev/preview relay with the same protocol, so `npm run dev` supp
 scripts/headless.ts  simulation smoke tests
 ```
 
+## Modes
+
+- **Versus:** local battles for 2–10 fighters with human and CPU slots, Stock, Time or Stamina rules, and optional teams.
+- **Story Mode:** an 8-stage ladder with stars and fighter unlocks.
+- **Practice:** a training dummy that can stand, shield, crouch, jump or fight back as a level 1–9 CPU. It has a combo counter, damage readouts, a frame readout, position reset and dummy % presets, and hitboxes on F4.
+- **Online:** room-code play for up to 10 players.
+
+## Fighters
+
+| Fighter | Look | Style |
+|---|---|---|
+| Nova, The Star Pilot | White astronaut helmet with cyan visor, blue suit, jetpack | All-rounder: plasma shot, comet dash |
+| Granite, The Walking Quarry | 7-ft rock golem, magma cracks, glowing eyes, giant stone fists | Heavyweight: armored charge, quake stomp |
+| Zephyr, The Drifting Gale | Mint bodysuit, winged teal helmet, platinum hair, long pink scarf | Fast, 4 jumps: wind shuriken, counter |
+| Volt, The Live Wire | Spiky gold hair, sky-blue goggles, gold armor, crackling sparks | Zoner: ball lightning, arc lash, reflector |
+| Ember, The Hearth Brawler *(unlock)* | Ember skin, flame hair, flaming fists, gold "hearth core" belt | Rushdown: fireballs, flame wheel |
+| Glacia, The Frost Sovereign *(unlock)* | Ice crown, white hair, pale-blue cape | Control: freezing lances, crystal shield |
+| Rook, The Oathsworn Knight *(unlock)* | Plumed great-helm, steel armor, red cape, longsword | Sword reach: charge blade, riposte |
+| Omega, The Void Sovereign *(unlock)* | Horned void giant, purple aura, glowing magenta eyes, cape | Boss: warp strike, singularity |
+
 ## Engineering notes
 
 - **No-lag loop:** the simulation steps at a fixed 60 Hz, separate from rendering. Frame delta is clamped to 100 ms and catch-up is capped at 6 steps, so alt-tabbing or a GC hitch never breaks physics. Rendering interpolates between steps.
 - **4K / Retina:** the canvas backing store is `cssSize × devicePixelRatio` (up to 3×). Settings include a 75%/50% render-scale option for weaker GPUs.
+- **Art pipeline:** everything is procedural vector art, so it is sharp at any resolution.
+  - **Fighters:** cel-shaded tapered limbs, ink outlines, rim/cel highlights, per-character costumes and heads, reactive capes, scarves and hair, and expressions for blinking, attacking and getting hurt. Platform surfaces use pattern tiles cached at 4 px per world unit.
+  - **Backgrounds:** soft sky glows and aurora are baked into a quarter-resolution atmosphere layer and upscaled with one draw. Crisp silhouettes stay full-resolution vector. Foreground layers add depth.
+  - **Camera and UI:** the world transform is pixel-snapped. The UI and HUD scale up on 4K and ultrawide screens.
+- **Juice:** directional hit sparks, impact flashes, attack smear trails, dash speed lines, smash charge shake and glow, shield pulse and cracks, and KO screen-edge bursts. *Settings → Visual intensity* (Full / Reduced / Minimal, defaulting to Reduced under `prefers-reduced-motion`) tones down flashes, shake and particle counts.
+- **Input buffer:** attack, special, jump and smash presses are buffered for 6 frames, so they come out the moment you can act.
+- **Dev gallery:** open `/#gallery` to see every fighter in every key pose.
 - **Allocation-free hot paths:** particles (1,400) and projectiles (96) come from pre-allocated pools.
 - **Perf HUD (F2):** shows FPS, render ms, sim step ms, steps per frame, entity counts, canvas size, and online role, room and RTT. **F4** shows hitboxes, hurtboxes and blast zones.
 - **Online model:** the host is authoritative. Clients send input every frame, carrying the last 3 frames to survive packet loss. The host keeps a per-player jitter buffer: it drops excess frames (merging their button presses) and holds the last input when it runs dry. It applies an optional local input delay for fairness and streams compact snapshots at 30 Hz, including events for effects and audio. Clients interpolate between snapshots. The room cap is enforced at the relay (`full` error for the 11th player), in the lobby, and in `World`.

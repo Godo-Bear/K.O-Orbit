@@ -3,9 +3,10 @@ import type { Fighter } from '../sim/fighter';
 import { SHIELD_MAX } from '../sim/fighter';
 import type { World, Projectile } from '../sim/world';
 import type { GameEvent } from '../sim/types';
-import { Background, THEMES } from './background';
+import { Background } from './background';
 import { Effects, FX_COLORS } from './effects';
-import { computePose, drawRig, drawPortrait, roundRect } from './rig';
+import { computePose, drawRig, drawPortrait, roundRect, type Expr } from './rig';
+import { drawStage } from './stagePaint';
 
 export interface PerfInfo { fps: number; stepMs: number; steps: number; renderMs: number; latency?: number | null; net?: string }
 
@@ -16,6 +17,7 @@ export interface RenderOpts {
   hideHud?: boolean;
   slotTags?: Map<number, string>; // slot -> label override ("CPU", name)
   screenShake?: boolean;
+  intensity?: number; // 2 full, 1 reduced, 0 minimal
 }
 
 /** Canvas 2D renderer with devicePixelRatio scaling for crisp 4K / Retina output. */
@@ -30,6 +32,10 @@ export class Renderer {
   private t = 0;
   private lastRenderMs = 0;
   private koFlash = 0;
+  private koEdges: { x: number; y: number; col: string; life: number }[] = [];
+  private trails = new Map<number, { x: number; y: number; r: number }[]>();
+  private shieldPulse = new Map<number, number>();
+  private intensity = 2;
 
   constructor(public canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true } as CanvasRenderingContext2DSettings);
@@ -64,12 +70,16 @@ export class Renderer {
         case 'hit': {
           const c = FX_COLORS[e.fx ?? 'hit'];
           const p = e.p ?? 10;
-          fx.sparks(e.x, e.y, Math.min(26, 6 + p / 8), 6 + p / 18, c);
+          if (e.ang !== undefined) {
+            fx.sparksDir(e.x, e.y, Math.min(24, 6 + p / 9), 8 + p / 14, c, e.ang, 0.9);
+            fx.sparks(e.x, e.y, Math.min(10, 3 + p / 25), 4 + p / 30, c);
+          } else fx.sparks(e.x, e.y, Math.min(26, 6 + p / 8), 6 + p / 18, c);
           fx.ring(e.x, e.y, 10, 2 + p / 40, 14, c[1]);
+          fx.spawn(4, e.x, e.y, 0, 0, 8, 18 + p / 6, '#ffffff', -1, 1); // impact flash
           if (p > 120) { fx.ring(e.x, e.y, 20, 6, 22, '#ffffff'); for (let i = 0; i < 4; i++) fx.spawn(4, e.x, e.y, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12, 30, 14, c[0], 0, 0.93); }
           break;
         }
-        case 'shieldhit': fx.ring(e.x, e.y, 14, 3, 12, '#8ff3ff'); fx.sparks(e.x, e.y, 5, 5, ['#ffffff', '#8ff3ff']); break;
+        case 'shieldhit': fx.ring(e.x, e.y, 14, 3, 12, '#8ff3ff'); fx.sparks(e.x, e.y, 5, 5, ['#ffffff', '#8ff3ff']); this.shieldPulse.set(e.slot ?? -1, 12); break;
         case 'shieldbreak': fx.ring(e.x, e.y, 20, 9, 30, '#ff6ad5'); fx.sparks(e.x, e.y, 30, 12, ['#ffffff', '#ff6ad5']); break;
         case 'ko': {
           const col = PLAYER_COLORS[e.slot ?? 0];
@@ -79,6 +89,8 @@ export class Renderer {
           fx.sparks(e.x, e.y, 40, 22, ['#ffffff', col]);
           fx.ring(e.x, e.y, 40, 22, 40, col);
           this.koFlash = 10;
+          this.koEdges.push({ x: e.x, y: e.y, col, life: 40 });
+          for (let i = 0; i < 6; i++) fx.spawn(4, e.x, e.y, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30, 40, 26, i % 2 ? '#ffffff' : col, 0, 0.9);
           break;
         }
         case 'jump': fx.puff(e.x, e.y, 4); break;
@@ -133,25 +145,35 @@ export class Renderer {
     const ctx = this.ctx;
     if (this.bgStage !== w.stage.id) { this.bg = new Background(w.stage); this.bgStage = w.stage.id; }
     this.updateCamera(w, alpha);
+    this.intensity = opts.intensity ?? 2;
+    this.effects.density = this.intensity === 2 ? 1 : this.intensity === 1 ? 0.6 : 0.35;
     if (!opts.paused) this.effects.update();
     const z = this.cam.zoom;
     let sx = 0, sy = 0;
-    if (opts.screenShake !== false && w.shakeMag > 0.3 && !opts.paused) { sx = (Math.random() - 0.5) * w.shakeMag * 2; sy = (Math.random() - 0.5) * w.shakeMag * 2; }
+    const shakeMul = opts.screenShake === false ? 0 : this.intensity === 2 ? 1 : this.intensity === 1 ? 0.35 : 0;
+    if (shakeMul > 0 && w.shakeMag > 0.3 && !opts.paused) { sx = (Math.random() - 0.5) * w.shakeMag * 2 * shakeMul; sy = (Math.random() - 0.5) * w.shakeMag * 2 * shakeMul; }
     const cx = this.cam.x + sx, cy = this.cam.y + sy;
     this.bg!.draw(ctx, this.W, this.H, cx, cy, z, this.t);
-    ctx.setTransform(z, 0, 0, z, this.W / 2 - cx * z, this.H / 2 - cy * z);
+    // pixel-snapped world transform: geometry & ink outlines land on whole device pixels
+    ctx.setTransform(z, 0, 0, z, Math.round(this.W / 2 - cx * z), Math.round(this.H / 2 - cy * z));
 
-    this.drawStage(w);
+    drawStage(ctx, w.stage, w.platforms, this.t);
     for (const p of w.projectiles) if (p.active) this.drawProjectile(p, alpha);
     // fighters: draw back-to-front, hit victims on top
+    if (!opts.paused) this.updateTrails(w);
+    this.drawTrails(w);
     for (const f of w.fighters) if (f.alive && f.state !== 'dead') this.drawFighter(f, alpha, opts);
     this.effects.draw(ctx);
+    this.bg!.drawForeground(ctx, this.W, this.H, cx, cy, z, this.t);
+    ctx.setTransform(z, 0, 0, z, Math.round(this.W / 2 - cx * z), Math.round(this.H / 2 - cy * z));
     if (!opts.hideHud) this.drawTags(); else this.tags.length = 0;
     if (opts.showHitboxes) this.drawHitboxes(w);
 
     // screen-space overlays
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (this.koFlash > 0) { ctx.fillStyle = `rgba(255,255,255,${this.koFlash * 0.02})`; ctx.fillRect(0, 0, this.W, this.H); if (!opts.paused) this.koFlash--; }
+    const flashMul = this.intensity === 2 ? 1 : this.intensity === 1 ? 0.35 : 0;
+    if (this.koFlash > 0) { if (flashMul) { ctx.fillStyle = `rgba(255,255,255,${this.koFlash * 0.02 * flashMul})`; ctx.fillRect(0, 0, this.W, this.H); } if (!opts.paused) this.koFlash--; }
+    this.drawKoEdges(opts.paused);
     this.drawOffscreen(w, alpha);
     if (!opts.hideHud) { this.drawHud(w, opts); this.drawBanner(w); }
     if (opts.perf) this.drawPerf(w, opts.perf);
@@ -159,54 +181,6 @@ export class Renderer {
   }
 
   get renderMs() { return this.lastRenderMs; }
-
-  private drawStage(w: World) {
-    const ctx = this.ctx;
-    const th = THEMES[w.stage.theme];
-    for (const p of w.platforms) {
-      if (p.solid) {
-        const h = p.h, mx = (p.x1 + p.x2) / 2, half = (p.x2 - p.x1) / 2;
-        const g = ctx.createLinearGradient(0, p.y, 0, p.y + h);
-        g.addColorStop(0, th.body1); g.addColorStop(1, th.body2);
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.moveTo(p.x1, p.y); ctx.lineTo(p.x2, p.y);
-        ctx.lineTo(p.x2 - 10, p.y + h * 0.35);
-        ctx.lineTo(mx + half * 0.35, p.y + h);
-        ctx.lineTo(mx - half * 0.35, p.y + h);
-        ctx.lineTo(p.x1 + 10, p.y + h * 0.35);
-        ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = th.glow; ctx.globalAlpha = 0.35; ctx.lineWidth = 3;
-        for (let i = 1; i < 4; i++) { ctx.beginPath(); ctx.moveTo(p.x1 + 40 + i * 20, p.y + i * 40); ctx.lineTo(p.x2 - 40 - i * 20, p.y + i * 40); ctx.stroke(); }
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = th.top;
-        ctx.fillRect(p.x1, p.y, p.x2 - p.x1, 14);
-        ctx.fillStyle = th.line;
-        ctx.fillRect(p.x1, p.y, p.x2 - p.x1, 3);
-        // ledge markers
-        ctx.fillStyle = th.glow;
-        ctx.fillRect(p.x1 - 3, p.y - 2, 10, 18); ctx.fillRect(p.x2 - 7, p.y - 2, 10, 18);
-      } else {
-        const moving = !!p.def.move;
-        ctx.fillStyle = th.soft; ctx.globalAlpha = 0.95;
-        roundRect(ctx, p.x1, p.y - 2, p.x2 - p.x1, 14, 6); ctx.fill();
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = th.line; ctx.fillRect(p.x1 + 6, p.y - 2, p.x2 - p.x1 - 12, 3);
-        if (moving) {
-          ctx.fillStyle = th.glow; ctx.globalAlpha = 0.5 + 0.3 * Math.sin(this.t * 0.2);
-          ctx.beginPath(); ctx.ellipse((p.x1 + p.x2) / 2, p.y + 22, (p.x2 - p.x1) * 0.25, 8, 0, 0, Math.PI * 2); ctx.fill();
-          ctx.globalAlpha = 1;
-        }
-      }
-    }
-    if (w.stage.theme === 'forge') {
-      const ly = w.stage.blast.b - 160;
-      ctx.fillStyle = 'rgba(255,90,20,0.55)';
-      ctx.beginPath(); ctx.moveTo(w.stage.blast.l, ly);
-      for (let x = w.stage.blast.l; x <= w.stage.blast.r; x += 100) ctx.lineTo(x, ly + Math.sin(x * 0.01 + this.t * 0.05) * 18);
-      ctx.lineTo(w.stage.blast.r, ly + 600); ctx.lineTo(w.stage.blast.l, ly + 600); ctx.fill();
-    }
-  }
 
   private drawProjectile(p: Projectile, alpha: number) {
     const ctx = this.ctx;
@@ -268,6 +242,25 @@ export class Renderer {
     }
     const intang = f.intangible();
     const pose = computePose(f, this.t);
+    // smash charge: shake + gathering glow
+    if (f.charging) {
+      x += Math.sin(this.t * 2.3) * Math.min(3, 0.6 + f.charge * 0.05);
+      const r = (55 + f.charge * 0.6) * sz;
+      const cg = ctx.createRadialGradient(x, y - f.H / 2, 0, x, y - f.H / 2, r);
+      cg.addColorStop(0, 'rgba(255,240,160,0.55)'); cg.addColorStop(1, 'rgba(255,200,60,0)');
+      ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(x, y - f.H / 2, r, 0, Math.PI * 2); ctx.fill();
+      if (this.t % 3 === 0) { const a = Math.random() * Math.PI * 2; this.effects.spawn(0, x + Math.cos(a) * r, y - f.H / 2 + Math.sin(a) * r, -Math.cos(a) * 5, -Math.sin(a) * 5, 12, 3, '#fff3a0', 0, 0.95); }
+    }
+    // dash / launch speed lines
+    const sp = Math.abs(f.vx + f.kvx);
+    if (sp > 8.5 && this.t % 2 === 0 && this.intensity > 0) {
+      const d = Math.sign(f.vx + f.kvx);
+      this.effects.spawn(0, x - d * 20 * sz, y - f.H * (0.2 + Math.random() * 0.6), -d * sp * 0.6, 0, 10, 2.5, 'rgba(255,255,255,0.7)', 0, 0.8);
+    }
+    let expr: Expr = 'idle';
+    if (f.state === 'hitstun' || f.state === 'knockdown' || f.state === 'dizzy' || f.state === 'shieldbreak') expr = 'hurt';
+    else if (f.state === 'attack' || f.charging) expr = 'fierce';
+    else if ((this.t + f.slot * 53) % 220 < 7) expr = 'blink';
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(sz * f.facing, sz);
@@ -278,15 +271,34 @@ export class Renderer {
     if (f.flash > 4) tint = '#ffffff';
     else if (f.charging && (this.t >> 2) % 2) tint = '#fff3a0';
     else if (f.state === 'dizzy') tint = (this.t >> 3) % 2 ? '#ffd0f0' : null;
-    drawRig(ctx, f.char, pose, tint, f.slot >= 0 ? '#0b0b14' : '#000', this.t);
+    drawRig(ctx, f.char, pose, tint, '#0b0b14', this.t, { vx: (f.vx + f.kvx) * f.facing, vy: f.vy + f.kvy, grounded: f.grounded }, expr);
     ctx.restore();
     ctx.globalAlpha = 1;
     // shield bubble
     if (f.state === 'shield' || f.state === 'shieldstun') {
-      const r = (22 + 46 * (f.shieldHP / SHIELD_MAX)) * sz;
-      ctx.fillStyle = col; ctx.globalAlpha = 0.33;
-      ctx.beginPath(); ctx.arc(x, y - f.H * 0.5, r, 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = 0.8; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+      const pulse = this.shieldPulse.get(f.slot) ?? 0;
+      if (pulse > 0 && !opts.paused) this.shieldPulse.set(f.slot, pulse - 1);
+      const hp = f.shieldHP / SHIELD_MAX;
+      const r = (22 + 46 * hp) * sz * (1 + pulse * 0.012);
+      const cy2 = y - f.H * 0.5;
+      const sg = ctx.createRadialGradient(x - r * 0.3, cy2 - r * 0.35, r * 0.1, x, cy2, r);
+      sg.addColorStop(0, 'rgba(255,255,255,0.55)'); sg.addColorStop(0.35, col); sg.addColorStop(1, col);
+      ctx.globalAlpha = 0.3 + pulse * 0.02; ctx.fillStyle = sg;
+      ctx.beginPath(); ctx.arc(x, cy2, r, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 0.9; ctx.strokeStyle = pulse > 0 ? '#ffffff' : col; ctx.lineWidth = 3 + pulse * 0.3; ctx.stroke();
+      ctx.globalAlpha = 0.7; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(x, cy2, r * 0.82, Math.PI * 1.15, Math.PI * 1.45); ctx.stroke();
+      if (hp < 0.45) { // cracks
+        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.globalAlpha = 0.85;
+        const n = hp < 0.2 ? 5 : 3;
+        for (let i = 0; i < n; i++) {
+          const a = i * 2.1 + 0.4;
+          ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * r * 0.2, cy2 + Math.sin(a) * r * 0.2);
+          ctx.lineTo(x + Math.cos(a + 0.25) * r * 0.55, cy2 + Math.sin(a + 0.25) * r * 0.55);
+          ctx.lineTo(x + Math.cos(a - 0.1) * r * 0.95, cy2 + Math.sin(a - 0.1) * r * 0.95);
+          ctx.stroke();
+        }
+      }
       ctx.globalAlpha = 1;
     }
     if (f.state === 'dizzy') {
@@ -337,6 +349,59 @@ export class Renderer {
     this.tags.length = 0;
   }
 
+  /** Record active hitbox positions for smear trails on attacks. */
+  private updateTrails(w: World) {
+    for (const f of w.fighters) {
+      let tr = this.trails.get(f.slot);
+      if (!tr) { tr = []; this.trails.set(f.slot, tr); }
+      const m = f.state === 'attack' ? f.move : null;
+      const h = m?.hitboxes.find((b) => f.moveFrame >= b.s && f.moveFrame <= b.e);
+      if (m && h && f.hitlag === 0) {
+        const p = w.hitboxWorld(f, h);
+        tr.push({ x: p.x, y: p.y, r: p.r });
+        if (tr.length > 8) tr.shift();
+      } else if (tr.length) tr.shift();
+    }
+  }
+
+  private drawTrails(w: World) {
+    const ctx = this.ctx;
+    ctx.lineCap = 'round';
+    for (const f of w.fighters) {
+      const tr = this.trails.get(f.slot);
+      if (!tr || tr.length < 2) continue;
+      const c = FX_COLORS[f.char.visual.fx];
+      for (let i = 1; i < tr.length; i++) {
+        const k = i / tr.length;
+        ctx.globalAlpha = k * 0.55;
+        ctx.strokeStyle = i === tr.length - 1 ? c[0] : c[1];
+        ctx.lineWidth = tr[i].r * 1.5 * k;
+        ctx.beginPath(); ctx.moveTo(tr[i - 1].x, tr[i - 1].y); ctx.lineTo(tr[i].x, tr[i].y); ctx.stroke();
+      }
+      ctx.globalAlpha = 0.8; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 3;
+      const a = tr[tr.length - 2], b = tr[tr.length - 1];
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /** Screen-edge colour bursts where a fighter was KO'd. */
+  private drawKoEdges(paused?: boolean) {
+    const ctx = this.ctx;
+    for (const k of this.koEdges) {
+      const s = this.worldToScreen(k.x, k.y);
+      const ex = Math.max(0, Math.min(this.W, s.x)), ey = Math.max(0, Math.min(this.H, s.y));
+      const r = Math.max(this.W, this.H) * 0.45 * (1 - k.life / 60);
+      const g = ctx.createRadialGradient(ex, ey, 0, ex, ey, Math.max(1, r));
+      g.addColorStop(0, k.col); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = (k.life / 40) * (this.intensity === 0 ? 0.25 : this.intensity === 1 ? 0.5 : 0.85);
+      ctx.fillStyle = g; ctx.fillRect(ex - r, ey - r, r * 2, r * 2);
+      if (!paused) k.life--;
+    }
+    ctx.globalAlpha = 1;
+    this.koEdges = this.koEdges.filter((k) => k.life > 0);
+  }
+
   private drawHitboxes(w: World) {
     const ctx = this.ctx;
     for (const f of w.fighters) {
@@ -382,21 +447,23 @@ export class Renderer {
       ctx.lineWidth = 4 * u; ctx.strokeStyle = col; ctx.stroke();
       ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r - 2 * u, 0, Math.PI * 2); ctx.clip();
       ctx.translate(cx, cy + r * 0.62); const k = (r * 1.6) / 100; ctx.scale(k * f.facing, k);
-      drawRig(ctx, f.char, computePose(f, this.t), null, '#0b0b14', this.t);
+      drawRig(ctx, f.char, computePose(f, this.t), null, '#0b0b14', this.t, { vx: f.vx * f.facing, vy: f.vy, grounded: f.grounded });
       ctx.restore();
     }
   }
 
   private drawHud(w: World, opts: RenderOpts) {
     const ctx = this.ctx;
-    const u = this.dpr;
+    const hs = Math.max(1, Math.min(2.2, Math.min(this.cssW / 1600, this.cssH / 900))); // HUD scale for large viewports
+    const u = this.dpr * hs;
+    const vw = this.cssW / hs, vh = this.cssH / hs;
     const n = w.fighters.length;
     const gap = 8;
-    const cardW = Math.min(230, (this.cssW - 24 - gap * (n - 1)) / n);
+    const cardW = Math.min(230, (vw - 24 - gap * (n - 1)) / n);
     const cardH = cardW < 120 ? 74 : 86;
     const totalW = n * cardW + (n - 1) * gap;
-    const x0 = (this.cssW - totalW) / 2;
-    const y0 = this.cssH - cardH - 12;
+    const x0 = (vw - totalW) / 2;
+    const y0 = vh - cardH - 12;
     const compact = cardW < 130;
     ctx.save();
     ctx.scale(u, u);
@@ -465,8 +532,8 @@ export class Renderer {
       const s = Math.ceil(w.timeLeft / 60);
       const txt = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
       ctx.font = '900 34px system-ui, sans-serif'; ctx.textAlign = 'center';
-      ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(txt, this.cssW / 2, 48);
-      ctx.fillStyle = s <= 10 ? '#ff5a5a' : '#ffffff'; ctx.fillText(txt, this.cssW / 2, 48);
+      ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(txt, vw / 2, 48);
+      ctx.fillStyle = s <= 10 ? '#ff5a5a' : '#ffffff'; ctx.fillText(txt, vw / 2, 48);
     }
     ctx.restore();
   }
@@ -486,6 +553,27 @@ export class Renderer {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.lineWidth = size * 0.08; ctx.strokeStyle = '#120a24'; ctx.strokeText(txt, this.cssW / 2, this.cssH * 0.42);
     ctx.fillStyle = col; ctx.fillText(txt, this.cssW / 2, this.cssH * 0.42);
+    ctx.restore();
+  }
+
+  /** Practice-mode info panel (top-right). */
+  drawPanel(lines: string[], highlight: boolean) {
+    const ctx = this.ctx;
+    const hs = Math.max(1, Math.min(2.2, Math.min(this.cssW / 1600, this.cssH / 900)));
+    const u = this.dpr * hs, vw = this.cssW / hs;
+    ctx.save(); ctx.setTransform(u, 0, 0, u, 0, 0);
+    ctx.font = '600 12.5px system-ui, sans-serif';
+    let w = 260;
+    for (const l of lines) w = Math.max(w, ctx.measureText(l).width + 44);
+    const h = 16 + lines.length * 19, x = vw - w - 12, y = 12;
+    ctx.fillStyle = 'rgba(8,8,22,0.8)'; roundRect(ctx, x, y, w, h, 12); ctx.fill();
+    ctx.strokeStyle = highlight ? '#ffd23f' : 'rgba(160,150,255,0.35)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    lines.forEach((l, i) => {
+      ctx.font = i === 0 ? 'italic 900 15px system-ui, sans-serif' : i === 1 ? '800 15px system-ui, sans-serif' : '600 12.5px system-ui, sans-serif';
+      ctx.fillStyle = i === 0 ? '#3ee8ff' : i === 1 && highlight ? '#ffd23f' : i === lines.length - 1 ? '#a9a8d6' : '#eef0ff';
+      ctx.fillText(l, x + 14, y + 10 + i * 19);
+    });
     ctx.restore();
   }
 

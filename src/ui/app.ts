@@ -4,18 +4,19 @@ import { save, persist } from '../core/save';
 import { PLAYER_COLORS, playerLabel } from '../core/constants';
 import { synth } from '../audio/synth';
 import { Renderer } from '../render/renderer';
-import { drawPortrait } from '../render/rig';
+import { drawPortrait, drawHeroCard } from '../render/rig';
 import { Session, type MatchConfig, type SessionKind } from '../game/session';
 import { CHARACTERS, charById } from '../sim/characters';
 import { STAGES } from '../sim/stages';
 import type { SlotConfig } from '../sim/types';
 import type { NetClient } from '../net/client';
 import { recordClear, type StoryStage } from '../story/campaign';
-import { el, btn, nav, toast, portraitCanvas } from './dom';
+import { el, btn, nav, toast, portraitCanvas, applyUiZoom, cycler } from './dom';
 import { versusScreen } from './versus';
 import { storyMapScreen } from './story';
 import { onlineMenuScreen } from './online';
 import { settingsScreen, controlsScreen, controlsGuide } from './options';
+import { practiceScreen, DUMMY_MODES, DUMMY_PCTS } from './practice';
 
 export class App {
   renderer: Renderer;
@@ -34,6 +35,8 @@ export class App {
     this.ui = document.getElementById('ui')!;
     this.renderer = new Renderer(canvas);
     this.renderer.setRenderScale(save.settings.renderScale);
+    applyUiZoom();
+    window.addEventListener('resize', applyUiZoom);
     this.loop = new FixedLoop(() => this.step(), (a) => this.draw(a));
     window.addEventListener('keydown', (e) => {
       if (e.code === 'F2') { e.preventDefault(); save.settings.showPerf = !save.settings.showPerf; persist(); }
@@ -118,11 +121,12 @@ export class App {
     const items: [string, string, () => void][] = [
       ['VERSUS', 'Local battles · up to 10 players & CPUs', () => this.versus()],
       ['STORY MODE', 'Climb the orbit and unlock fighters', () => this.story()],
+      ['PRACTICE', 'Training dummy, combo counter & hitboxes', () => this.practice()],
       ['ONLINE', 'Room-code multiplayer · up to 10', () => this.online()],
       ['CONTROLS', 'Keybinds, gamepads & move guide', () => this.controls(() => this.modes())],
       ['SETTINGS', 'Audio, video, data', () => this.settings(() => this.modes())],
     ];
-    const list = el('div', { class: 'mode-list' }, items.map(([t, d, f], i) => btn([el('span', { class: 'mode-title' }, t), el('span', { class: 'mode-desc' }, d)], f, `mode-btn m${i}`, i === 0 ? { 'data-autofocus': '' } : {})));
+    const list = el('div', { class: 'mode-list' }, items.map(([t, d, f], i) => btn([el('span', { class: 'mode-title' }, t), el('span', { class: 'mode-desc' }, d)], f, `mode-btn m${i % 6}`, i === 0 ? { 'data-autofocus': '' } : {})));
     const screen = el('div', { class: 'panel-screen modes' },
       el('div', { class: 'logo small' }, el('span', { class: 'logo-ko' }, 'K.O'), el('span', { class: 'logo-orbit' }, 'ORBIT')),
       list,
@@ -133,6 +137,7 @@ export class App {
 
   versus() { this.show(versusScreen(this), () => this.modes(), 'wide'); }
   story() { this.show(storyMapScreen(this), () => this.modes(), 'wide'); }
+  practice() { this.show(practiceScreen(this), () => this.modes(), 'wide'); }
   online() { this.show(onlineMenuScreen(this), () => { this.leaveNet(); this.modes(); }); }
   settings(back: () => void) { this.show(settingsScreen(this, back), back); }
   controls(back: () => void) { this.show(controlsScreen(this, back), back, 'wide'); }
@@ -173,6 +178,12 @@ export class App {
       el('h2', {}, online ? 'MENU' : 'PAUSED'),
       online ? el('p', { class: 'muted' }, 'Online matches keep running while this menu is open.') : null,
       btn('Resume', resume, 'wide-btn', { 'data-autofocus': '' }),
+      s.cfg.practice ? el('div', { class: 'practice-pause' },
+        btn('Reset Positions', () => { s.resetPositions(); resume(); }, 'wide-btn'),
+        cycler('Dummy', DUMMY_MODES, s.cfg.practice.dummy, (v) => { s.cfg.practice!.dummy = v; }),
+        cycler('Set dummy %', DUMMY_PCTS, s.cfg.practice.startPct, (v) => { s.cfg.practice!.startPct = v; s.world.fighters[1].percent = v; }),
+        cycler('CPU Lvl', Array.from({ length: 9 }, (_, k) => ({ v: k + 1, label: String(k + 1) })), s.cfg.practice.level, (v) => { s.cfg.practice!.level = v; const b = s.brains[1]; if (b) b.level = v; }),
+        btn(this.showHitboxes ? 'Hide Hitboxes (F4)' : 'Show Hitboxes (F4)', () => { this.showHitboxes = !this.showHitboxes; resume(); }, 'wide-btn')) : null,
       btn('Controls Guide', () => guide.classList.toggle('hidden'), 'wide-btn'),
       btn(online ? 'Leave Match' : 'Quit Match', quit, 'wide-btn danger'),
       guide,
@@ -208,7 +219,7 @@ export class App {
           el('h3', {}, 'STAGE CLEAR!'),
           el('div', { class: 'stars big' }, [1, 2, 3].map((k) => el('span', { class: k <= stars ? 'star on' : 'star' }, '★'))),
           el('div', { class: 'muted' }, `★ Clear  ·  ★ Take ≤ ${story.stars.damage} damage (${Math.round(human.damageTaken)})  ·  ★ Clear in ≤ ${story.stars.time}s (${secs}s)`),
-          unlocked ? el('div', { class: 'unlock-banner' }, portraitCanvas(72, (c, sz) => drawPortrait(c, charById(unlocked), sz / 2, sz * 0.1, sz * 1.1)), el('div', {}, el('b', {}, 'NEW CHALLENGER UNLOCKED!'), el('div', {}, `${charById(unlocked).name} — ${charById(unlocked).title}`))) : null,
+          unlocked ? el('div', { class: 'unlock-banner' }, portraitCanvas(110, (c, wd, ht) => drawHeroCard(c, charById(unlocked), wd, ht), 130), el('div', {}, el('b', {}, 'NEW CHALLENGER UNLOCKED!'), el('div', {}, `${charById(unlocked).name} — ${charById(unlocked).title}`))) : null,
         );
         if (unlocked) { synth.unlockJingle(); toast(`🔓 ${charById(unlocked).name} unlocked!`, 4000); }
       } else {
@@ -240,7 +251,9 @@ export class App {
       btn('Main Menu', () => { this.endSession(); if (online) this.leaveNet(); this.modes(); }),
     );
     const screen = el('div', { class: 'panel-screen results' },
-      el('h1', { class: 'win-title', style: winner[0] ? `color:${PLAYER_COLORS[winner[0].slot]}` : '' }, winTxt),
+      el('div', { class: 'win-row' },
+        winner.slice(0, 3).map((f) => el('div', { class: 'win-hero', style: `--pc:${PLAYER_COLORS[f.slot]}` }, portraitCanvas(200, (c, wd, ht) => drawHeroCard(c, f.char, wd, ht, w.frame), 230))),
+        el('h1', { class: 'win-title', style: winner[0] ? `color:${PLAYER_COLORS[winner[0].slot]}` : '' }, winTxt)),
       storyBlock,
       el('div', { class: 'table-wrap' }, el('table', { class: 'results-table' },
         el('thead', {}, el('tr', {}, ['#', 'Fighter', 'KOs', 'Falls', 'SDs', 'Dealt', 'Taken'].map((h) => el('th', {}, h)))),

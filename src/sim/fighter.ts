@@ -48,11 +48,15 @@ export class Fighter {
   kos = 0; falls = 0; damageDealt = 0; damageTaken = 0; sds = 0;
   eliminatedAt = -1; score = 0;
   input: InputFrame = emptyInput();
+  /** Input buffer: presses made during lag are replayed for a few frames once actionable. */
+  private buf = { atk: 0, spc: 0, jmp: 0, smh: 0, sx: 0, sy: 0 };
   scale: number;
   armorAll: boolean;
   shake = 0; // visual shake during hitlag
   flash = 0; // visual hit flash
   hitThisFrame = false;
+  tractionMul = 1; // stage ground friction multiplier
+  djAge = 999; // frames since last double jump (animation)
   name: string;
   team: number;
 
@@ -120,13 +124,24 @@ export class Fighter {
     if (this.state === 'dead') { this.updateDead(w); return; }
     if (this.hitlag > 0) { this.hitlag--; this.shake = this.hitlag > 0 ? this.shake : 0; return; }
     this.shake = 0;
+    if (this.djAge < 999) this.djAge++;
     if (this.invuln > 0) this.invuln--;
     if (this.ledgeCooldown > 0) this.ledgeCooldown--;
     if (this.dropThrough > 0) this.dropThrough--;
     if (this.state !== 'shield' && this.state !== 'shieldstun' && this.shieldHP < SHIELD_MAX) this.shieldHP = Math.min(SHIELD_MAX, this.shieldHP + 0.08);
     this.stateFrame++;
     this.prevX = this.x; this.prevY = this.y;
-    this.think(inp, w);
+    const b = this.buf, BUF = 6;
+    let use = inp;
+    if (inp.attackP) b.atk = BUF; if (inp.specialP) b.spc = BUF; if (inp.jumpP) b.jmp = BUF;
+    if (inp.smashP) { b.smh = BUF; b.sx = inp.sx; b.sy = inp.sy; }
+    if ((b.atk || b.spc || b.jmp || b.smh) && !(inp.attackP || inp.specialP || inp.jumpP || inp.smashP)) {
+      use = { ...inp, attackP: b.atk > 0, specialP: b.spc > 0, jumpP: b.jmp > 0, smashP: b.smh > 0, sx: b.sx, sy: b.sy };
+    }
+    const st0 = this.state, mv0 = this.move, j0 = this.jumpsLeft, sf0 = this.stateFrame;
+    this.think(use, w);
+    if (this.state !== st0 || this.move !== mv0 || this.jumpsLeft !== j0 || this.stateFrame < sf0) { b.atk = b.spc = b.jmp = b.smh = 0; }
+    else { if (b.atk) b.atk--; if (b.spc) b.spc--; if (b.jmp) b.jmp--; if (b.smh) b.smh--; }
     if ((this.state as FState) === 'dead') return;
     this.physics(inp, w);
   }
@@ -304,7 +319,7 @@ export class Fighter {
   }
 
   private friction(mul = 1) {
-    const t = this.st.traction * mul;
+    const t = this.st.traction * mul * this.tractionMul;
     if (Math.abs(this.vx) <= t) this.vx = 0; else this.vx -= Math.sign(this.vx) * t;
   }
 
@@ -365,6 +380,7 @@ export class Fighter {
   private airActions(i: InputFrame, w: World): boolean {
     if (i.jumpP && this.jumpsLeft > 0 && !(this.stateFrame < 2 && this.state === 'air' && this.vy < 0 && this.prevGroundedJump())) {
       this.jumpsLeft--;
+      this.djAge = 0;
       this.vy = -this.st.djump * (this.st.jumps > 2 ? 0.94 : 1);
       this.vx = i.x * this.st.air;
       this.fastFall = false;

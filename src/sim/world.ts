@@ -72,6 +72,7 @@ export class World {
     const n = slots.length;
     slots.forEach((cfg, idx) => {
       const f = new Fighter(cfg.slot, charById(cfg.charId), cfg);
+      f.tractionMul = this.stage.traction ?? 1;
       f.stocks = rules.mode === 'time' ? 0 : (cfg.stocks ?? rules.stocks);
       f.maxHp = f.hp = cfg.hp ?? rules.hp;
       const span = main.x2 - main.x1 - 160;
@@ -225,7 +226,8 @@ export class World {
     v.flash = 8;
     if (a && !projectile) { a.hitlag = hitlag; a.shake = 0; }
     v.hitlag = hitlag; v.shake = Math.min(10, 2 + dmg * 0.5);
-    this.emit({ type: 'hit', x: hx, y: hy, slot: v.slot, p: kb, fx: h.fx ?? 'hit', n: a ? a.slot : -1 });
+    const la = (h.ang * Math.PI) / 180;
+    this.emit({ type: 'hit', x: hx, y: hy, slot: v.slot, p: kb, fx: h.fx ?? 'hit', n: a ? a.slot : -1, ang: Math.atan2(-Math.sin(la), Math.cos(la) * dir) });
     if (armored) return;
     if (v.state === 'ledge') v.releaseLedge(this);
     // launch angle with simple DI

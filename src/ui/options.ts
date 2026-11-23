@@ -24,6 +24,8 @@ export function settingsScreen(app: App, back: () => void): HTMLElement {
       toggle('Mute', s.muted, (v) => set(() => { s.muted = v; })),
       el('h3', {}, 'Video & Performance'),
       cycler('Render resolution', [{ v: 1, label: 'Native (4K/Retina)' }, { v: 0.75, label: '75%' }, { v: 0.5, label: '50%' }], s.renderScale, (v) => set(() => { s.renderScale = v; app.renderer.setRenderScale(v); })),
+      cycler('Visual intensity', [{ v: 2, label: 'Full' }, { v: 1, label: 'Reduced' }, { v: 0, label: 'Minimal' }], s.intensity, (v) => set(() => { s.intensity = v; })),
+      el('p', { class: 'muted small' }, 'Reduced / Minimal tone down flashes, screen shake and particle density (defaults to Reduced when your OS requests reduced motion).'),
       toggle('Screen shake', s.screenShake, (v) => set(() => { s.screenShake = v; })),
       toggle('Perf / debug HUD (F2)', s.showPerf, (v) => set(() => { s.showPerf = v; })),
       el('h3', {}, 'Online'),

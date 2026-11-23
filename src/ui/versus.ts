@@ -4,7 +4,7 @@ import { synth } from '../audio/synth';
 import { CHARACTERS, charById } from '../sim/characters';
 import { STAGES, type StageDef } from '../sim/stages';
 import { THEMES } from '../render/background';
-import { drawPortrait } from '../render/rig';
+import { drawHeroCard } from '../render/rig';
 import type { MatchRules, SlotConfig } from '../sim/types';
 import { isCharUnlocked } from '../story/campaign';
 import { el, btn, cycler, toggle, toast, portraitCanvas } from './dom';
@@ -22,7 +22,7 @@ const state = {
 
 export function stagePreview(st: StageDef, w: number, h: number) {
   return portraitCanvas(w, (ctx) => {
-    const H = (h / w) * w;
+    const H = h;
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, st.sky[0]); g.addColorStop(0.6, st.sky[1]); g.addColorStop(1, st.sky[2]);
     ctx.fillStyle = g; ctx.fillRect(0, 0, w, H);
@@ -36,7 +36,7 @@ export function stagePreview(st: StageDef, w: number, h: number) {
       } else ctx.fillRect(cx + p.x1 * sx, cy + p.y * sx, (p.x2 - p.x1) * sx, 3);
       if (p.move) { ctx.fillStyle = th.glow; ctx.fillRect(cx + ((p.x1 + p.x2) / 2) * sx - 2, cy + p.y * sx + 4, 4, 2); }
     }
-  });
+  }, h);
 }
 
 export function versusScreen(app: App): HTMLElement {
@@ -66,7 +66,7 @@ export function versusScreen(app: App): HTMLElement {
       return card;
     }
     card.append(...[
-      el('div', { class: 'slot-portrait' }, portraitCanvas(92, (ctx, sz) => drawPortrait(ctx, c, sz / 2, sz * 0.02, sz * 1.25))),
+      el('div', { class: 'slot-portrait' }, portraitCanvas(150, (ctx, wd, ht) => drawHeroCard(ctx, c, wd, ht), 118)),
       cycler(null, CHARACTERS.map((ch) => ({ v: ch.id, label: isCharUnlocked(ch.id) ? ch.name : `🔒 ${ch.name}`, disabled: !isCharUnlocked(ch.id) })), s.charId, (v) => { s.charId = v; refresh(); }, 'char-cyc'),
       s.type === 'HUMAN'
         ? cycler('Ctrl', DEVICE_IDS.map((d) => ({ v: d, label: deviceLabel(d) })), s.device, (v) => { s.device = v; })
@@ -87,7 +87,7 @@ export function versusScreen(app: App): HTMLElement {
         : cycler('Stocks', [1, 2, 3, 4, 5, 7, 10, 99].map((n) => ({ v: n, label: String(n) })), state.stocks, (v) => { state.stocks = v; }),
       state.mode === 'stamina' ? cycler('HP', [100, 150, 200, 300].map((n) => ({ v: n, label: String(n) })), state.hp, (v) => { state.hp = v; }) : null,
       toggle('Teams', state.teams, (v) => { state.teams = v; renderSlots(); }),
-      btn('Fill CPUs', () => { state.slots.forEach((s, i) => { if (s.type === 'OFF') { s.type = 'CPU'; s.charId = firstUnlocked(CHARACTERS[(i * 3) % 8].id); s.cpuLevel = 3 + (i % 5); } }); renderSlots(); }, 'small'),
+      btn('Fill CPUs', () => { const open = CHARACTERS.filter((c) => isCharUnlocked(c.id)); state.slots.forEach((s, i) => { if (s.type === 'OFF') { s.type = 'CPU'; s.charId = open[i % open.length].id; s.cpuLevel = 3 + (i % 5); } }); renderSlots(); }, 'small'),
       btn('Clear', () => { state.slots.forEach((s, i) => { if (i > 0) s.type = 'OFF'; }); renderSlots(); }, 'small'),
       countEl,
     ].filter((x): x is HTMLElement => !!x));

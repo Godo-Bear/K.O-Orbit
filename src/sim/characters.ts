@@ -82,7 +82,7 @@ export const CHARACTERS: CharDef[] = [];
     id: 'nova', name: 'Nova', title: 'The Star Pilot', starter: true,
     blurb: 'A balanced pilot with a plasma blaster and a comet-fast dash. Great for learning.',
     stats: stats({}),
-    visual: vis({ body: '#2d6cdf', accent: '#7fe3ff', skin: '#f2c9a0', dark: '#132a5e', head: 'helmet', accessory: 'visor', bulk: 1, fx: 'elec', glove: '#f4f7ff', boot: '#f4f7ff', hair: '#2b2b40', eye: '#1a1a2e', cape: null, emblem: 'star', shoulder: 15, waist: 11, glow: '#7fe3ff' }),
+    visual: vis({ body: '#2f4fc4', accent: '#3fd6d8', skin: '#e7b48e', dark: '#2a47b0', head: 'helmet', accessory: 'visor', bulk: 1, fx: 'elec', glove: '#f2f5fb', boot: '#f2f5fb', hair: '#1d2433', eye: '#4fe3e6', cape: null, emblem: 'star', shoulder: 14.5, waist: 10, glow: '#7fe3ff', emblemColor: '#f6c33a', jointCol: '#22399a', hips: 1 }),
     moves: m, ratings: { speed: 3, power: 3, weight: 3, air: 3 },
   });
 }
@@ -232,7 +232,7 @@ export const CHARACTERS: CharDef[] = [];
     id: 'ember', name: 'Ember', title: 'The Hearth Brawler', starter: false,
     blurb: 'Relentless pressure with bouncing fireballs, a spinning flame wheel and explosive bursts.',
     stats: stats({ walk: 3.8, run: 8.2, air: 3.6, airAccel: 0.4, gravity: 0.68, fall: 11.5, fastFall: 18, jump: 17, weight: 90, size: 0.96 }),
-    visual: vis({ body: '#e8643c', accent: '#f2b33a', skin: '#e8643c', dark: '#36363d', head: 'round', accessory: 'flame', bulk: 1, fx: 'fire', glove: '#2e2a2a', boot: '#6b3f22', hair: '#ff8a1f', eye: '#ffd23f', cape: null, emblem: 'flame', shoulder: 14, waist: 10, glow: '#ffae3a', bareTorso: true, fist: 1.25 }),
+    visual: vis({ body: '#e8643c', accent: '#f2b33a', skin: '#e8643c', dark: '#36363d', head: 'round', accessory: 'flame', bulk: 1, fx: 'fire', glove: '#2e2a2a', boot: '#6b3f22', hair: '#ff8a1f', eye: '#ffd23f', cape: null, emblem: 'flame', shoulder: 14, waist: 10, glow: '#ffae3a', bareTorso: true, fist: 1.25, handFire: ['rgba(255,110,30,0.85)', 'rgba(255,214,80,0.85)'] }),
     moves: m, ratings: { speed: 4, power: 4, weight: 2, air: 3 },
   });
 }
@@ -266,7 +266,7 @@ export const CHARACTERS: CharDef[] = [];
     id: 'glacia', name: 'Glacia', title: 'The Frost Sovereign', starter: false,
     blurb: 'Freezing lances lock foes in place; her crystal shield reflects and absorbs.',
     stats: stats({ walk: 3, run: 6.3, air: 3, airAccel: 0.3, gravity: 0.55, fall: 9.5, fastFall: 15, jump: 17.5, djump: 16.5, weight: 98 }),
-    visual: vis({ body: '#7ac8f0', accent: '#ffffff', skin: '#dfeefa', dark: '#1d4d6e', head: 'round', accessory: 'crystal', bulk: 0.95, fx: 'ice', glove: '#ffffff', boot: '#d8f1ff', hair: '#eaf7ff', eye: '#1d78c8', cape: '#bfe8ff', emblem: 'snow', shoulder: 13.5, waist: 10, glow: '#a8ecff' }),
+    visual: vis({ body: '#9fd3f0', accent: '#e9f8ff', skin: '#e6eef8', dark: '#8cbfe0', head: 'round', accessory: 'crystal', bulk: 0.9, fx: 'ice', glove: '#f2fbff', boot: '#7fb4dc', hair: '#dff1ff', eye: '#3e7fc4', cape: '#9cc6ec', emblem: 'snow', shoulder: 12.5, waist: 8.5, glow: '#a8ecff', armor: '#c8ecff', skirt: '#8ec6ea', emblemColor: '#ffffff', jointCol: '#bfe9ff', hips: 1.5 }),
     moves: m, ratings: { speed: 2, power: 3, weight: 3, air: 4 },
   });
 }
@@ -297,7 +297,7 @@ export const CHARACTERS: CharDef[] = [];
     id: 'rook', name: 'Rook', title: 'The Oathsworn Knight', starter: false,
     blurb: 'Huge sword reach, a chargeable blade and a punishing riposte counter.',
     stats: stats({ walk: 3.1, run: 6.8, air: 3.1, airAccel: 0.3, gravity: 0.64, fall: 11, fastFall: 17, jump: 16.5, djump: 15.5, weight: 108, size: 1.06 }),
-    visual: vis({ body: '#5b6478', accent: '#e7c45a', skin: '#e9c7a3', dark: '#262b38', head: 'helmet', accessory: 'sword', bulk: 1.1, fx: 'slash', glove: '#8b93a8', boot: '#3a4152', hair: '#c8102e', eye: '#ffe9a8', cape: '#9c1c2a', emblem: 'crest', shoulder: 16.5, waist: 12, glow: '#ffd76a' }),
+    visual: vis({ body: '#b8bfcb', accent: '#e2b544', skin: '#e9c7a3', dark: '#9aa2b0', head: 'helmet', accessory: 'sword', bulk: 1.15, fx: 'slash', glove: '#a9b1be', boot: '#7a4a2a', hair: '#d8322e', eye: '#ffe9a8', cape: '#c42b2b', emblem: 'crest', shoulder: 17, waist: 12.5, glow: '#ffb347', armor: '#c8cfda', emblemColor: '#c8302c', jointCol: '#e2b544' }),
     moves: m, ratings: { speed: 3, power: 4, weight: 4, air: 2 },
   });
 }
@@ -350,8 +350,8 @@ export const CHARACTERS: CharDef[] = [];
   CHARACTERS.push({
     id: 'omega', name: 'Omega', title: 'The Void Sovereign', starter: false,
     blurb: 'The orbit\'s final guardian. Warps through space and drags foes into a singularity.',
-    stats: stats({ walk: 3, run: 7, air: 3.1, airAccel: 0.3, gravity: 0.62, fall: 11, fastFall: 17, jump: 17, weight: 118, size: 1.12, jumpSquat: 4 }),
-    visual: vis({ body: '#2a1640', accent: '#c04dff', skin: '#8f7aa8', dark: '#0e0618', head: 'spiky', accessory: 'horns', bulk: 1.2, fx: 'dark', glove: '#120820', boot: '#120820', hair: '#0a0410', eye: '#ff3df0', cape: '#3b0f5c', emblem: 'void', shoulder: 18, waist: 12.5, glow: '#c04dff' }),
+    stats: stats({ walk: 3, run: 7, air: 3.1, airAccel: 0.3, gravity: 0.62, fall: 11, fastFall: 17, jump: 17, weight: 118, size: 1.2, jumpSquat: 4 }),
+    visual: vis({ body: '#2f2a38', accent: '#7c3fa6', skin: '#b9ace0', dark: '#211d29', head: 'spiky', accessory: 'horns', bulk: 1.25, fx: 'dark', glove: '#2a2531', boot: '#1f1b25', hair: '#0a0410', eye: '#ff3df0', cape: '#4a1f66', emblem: 'void', shoulder: 19, waist: 13, glow: '#e040ff', armor: '#3a3444', emblemColor: '#ff3df0', tabard: '#4a1f66', handFire: ['rgba(224,64,255,0.85)', 'rgba(255,150,255,0.85)'], jointCol: '#3a3444' }),
     moves: m, ratings: { speed: 3, power: 5, weight: 4, air: 3 },
   });
 }

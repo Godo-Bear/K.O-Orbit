@@ -67,6 +67,11 @@ export interface CharVisual {
   cracks?: string; // glowing crack colour over body (Granite magma)
   fist?: number; // hand size multiplier
   hips?: number; // hip width bonus (silhouette)
+  emblemColor?: string; // chest emblem colour (defaults to accent)
+  skirt?: string; // dress / tasset colour (Glacia)
+  tabard?: string; // front cloth panel (Omega)
+  handFire?: [string, string]; // flame colours around fists (Ember / Omega)
+  jointCol?: string; // knee & elbow guards
 }
 
 export interface CharDef {

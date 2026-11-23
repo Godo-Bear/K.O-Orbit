@@ -11,6 +11,12 @@ interface DevState { prev: InputFrame; hist: number[]; histY: number[]; rsPrev: 
 
 class InputManager {
   private keys = new Set<string>();
+  private fresh = new Set<string>(); // pressed since the last poll
+  private releaseLater = new Set<string>(); // released before any poll saw them — release after next poll
+  private wheel = new Map<string, number>(); // scroll pulses: code -> ticks remaining (negative = cool-down gap)
+  private lastCapture = 0;
+  /** Set by the app: true while a match is running (mouse/scroll then act as game input, not page input). */
+  inMatch: () => boolean = () => false;
   private devs = new Map<DeviceId, DevState>();
   private frames = new Map<DeviceId, InputFrame>();
   /** When set, the next key/button press is delivered here (for rebinding) and swallowed. */
@@ -23,16 +29,45 @@ class InputManager {
       if (this.captureKey) { e.preventDefault(); e.stopImmediatePropagation(); const cb = this.captureKey; this.captureKey = null; cb(e.code); return; }
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
-      this.keys.add(e.code);
+      this.keys.add(e.code); this.fresh.add(e.code);
       if (this.isGameKey(e.code)) e.preventDefault();
     });
-    window.addEventListener('keyup', (e) => this.keys.delete(e.code));
-    window.addEventListener('blur', () => this.keys.clear());
+    window.addEventListener('keyup', (e) => this.release(e.code));
+    window.addEventListener('blur', () => { this.keys.clear(); this.wheel.clear(); });
+
+    // ---- mouse buttons & scroll wheel (bindable like keys: Mouse0 left, Mouse1 middle, Mouse2 right, Mouse3/4 side, WheelUp/WheelDown)
+    window.addEventListener('mousedown', (e) => {
+      const code = `Mouse${e.button}`;
+      if (this.captureKey) { e.preventDefault(); e.stopImmediatePropagation(); this.lastCapture = performance.now(); const cb = this.captureKey; this.captureKey = null; cb(code); return; }
+      if (this.inMatch() && this.isGameKey(code)) e.preventDefault();
+      this.keys.add(code); this.fresh.add(code);
+    }, true);
+    window.addEventListener('mouseup', (e) => this.release(`Mouse${e.button}`), true);
+    window.addEventListener('contextmenu', (e) => {
+      // right-click is a game control during matches and while rebinding
+      if (this.captureKey || performance.now() - this.lastCapture < 600 || (this.inMatch() && this.isGameKey('Mouse2'))) e.preventDefault();
+    });
+    window.addEventListener('auxclick', (e) => { if (this.inMatch()) e.preventDefault(); });
+    window.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaY) < 1) return;
+      const code = e.deltaY < 0 ? 'WheelUp' : 'WheelDown';
+      if (this.captureKey) { e.preventDefault(); e.stopImmediatePropagation(); this.lastCapture = performance.now(); const cb = this.captureKey; this.captureKey = null; cb(code); return; }
+      if (!this.isGameKey(code)) return;
+      if (this.inMatch()) e.preventDefault();
+      // a scroll notch is a momentary press: hold it for a few simulation ticks, with a gap between notches
+      const cur = this.wheel.get(code) ?? 0;
+      if (cur <= 0) this.wheel.set(code, 4);
+    }, { passive: false, capture: true });
   }
 
   private isGameKey(code: string) {
     if (code.startsWith('Arrow') || code === 'Space') return true;
     return save.kb.some((s) => Object.values(s.keys).some((ks) => ks.includes(code)));
+  }
+
+  /** Taps shorter than one simulation tick still register: defer the release until a poll has seen the press. */
+  private release(code: string) {
+    if (this.fresh.has(code)) this.releaseLater.add(code); else this.keys.delete(code);
   }
 
   isKeyDown(code: string) { return this.keys.has(code); }
@@ -47,6 +82,10 @@ class InputManager {
 
   /** Sample every device once per simulation tick. */
   poll() {
+    for (const [code, n] of this.wheel) {
+      if (n > 2) this.keys.add(code); else this.keys.delete(code);
+      if (n <= -2) this.wheel.delete(code); else this.wheel.set(code, n - 1);
+    }
     const pads = this.gamepads();
     if (this.capturePad) {
       for (let i = 0; i < pads.length; i++) {
@@ -60,6 +99,9 @@ class InputManager {
     }
     for (let i = 0; i < pads.length; i++) { const g = pads[i]; this.padPrevButtons[i] = g ? g.buttons.map((b) => b.pressed) : []; }
     for (const id of DEVICE_IDS) this.frames.set(id, this.sample(id, pads));
+    this.fresh.clear();
+    for (const c of this.releaseLater) this.keys.delete(c);
+    this.releaseLater.clear();
   }
 
   get(id: DeviceId): InputFrame { return this.frames.get(id) ?? emptyInput(); }

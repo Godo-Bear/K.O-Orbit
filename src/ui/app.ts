@@ -37,6 +37,7 @@ export class App {
     this.renderer = new Renderer(canvas);
     this.renderer.setRenderScale(save.settings.renderScale);
     applyUiZoom();
+    input.inMatch = () => !!this.session && !this.pauseEl && !this.session.paused;
     window.addEventListener('resize', applyUiZoom);
     this.loop = new FixedLoop(() => this.step(), (a) => this.draw(a));
     window.addEventListener('keydown', (e) => {

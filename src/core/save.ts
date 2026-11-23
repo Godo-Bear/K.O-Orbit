@@ -33,8 +33,8 @@ export const DEFAULT_KB: KeyScheme[] = [
   {
     tapJump: true,
     keys: {
-      up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], jump: ['Space'],
-      attack: ['KeyJ'], special: ['KeyK'], shield: ['KeyL'], smash: ['KeyI'], pause: ['Escape'],
+      up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], jump: ['Space', 'WheelUp'],
+      attack: ['KeyJ', 'Mouse0'], special: ['KeyK', 'Mouse2'], shield: ['KeyL', 'Mouse1'], smash: ['KeyI', 'WheelDown'], pause: ['Escape'],
     },
   },
   {
@@ -57,7 +57,7 @@ const KEY = 'ko-orbit-save-v1';
 
 function defaults(): SaveData {
   return {
-    version: 1,
+    version: 2,
     settings: {
       master: 0.7, sfx: 0.9, music: 0.55, muted: false, showPerf: false, screenShake: true, renderScale: 1,
       onlineServer: '', playerName: 'Player', inputDelay: 2,
@@ -71,13 +71,23 @@ function defaults(): SaveData {
   };
 }
 
+/** v2: add default mouse/scroll bindings to Keys 1 where the player hasn't used those slots. */
+function migrateMouse(sd: SaveData) {
+  const used = new Set(sd.kb.flatMap((k) => Object.values(k.keys).flat()));
+  const add: [Action, string][] = [['attack', 'Mouse0'], ['special', 'Mouse2'], ['shield', 'Mouse1'], ['jump', 'WheelUp'], ['smash', 'WheelDown']];
+  for (const [a, code] of add) {
+    const ks = sd.kb[0].keys[a];
+    if (!used.has(code) && ks.length < 2) ks.push(code);
+  }
+}
+
 function load(): SaveData {
   const d = defaults();
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return d;
     const p = JSON.parse(raw);
-    return {
+    const out: SaveData = {
       ...d, ...p,
       settings: { ...d.settings, ...(p.settings || {}) },
       story: { cleared: { ...(p.story?.cleared || {}) } },
@@ -87,12 +97,16 @@ function load(): SaveData {
         : d.kb,
       pad: { ...d.pad, ...(p.pad || {}), buttons: { ...d.pad.buttons, ...(p.pad?.buttons || {}) } },
     };
+    if ((p.version ?? 1) < 2) migrateMouse(out);
+    out.version = 2;
+    return out;
   } catch {
     return d;
   }
 }
 
 export const save: SaveData = load();
+queueMicrotask(() => persist()); // write back any migration
 
 export function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(save)); } catch { /* storage unavailable */ }
@@ -117,6 +131,8 @@ export function keyLabel(code: string): string {
   const map: Record<string, string> = {
     ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Space: 'Space', ShiftRight: 'RShift', ShiftLeft: 'LShift',
     Comma: ',', Period: '.', Slash: '/', Semicolon: ';', Quote: "'", Escape: 'Esc', Backspace: 'Bksp', Enter: 'Enter',
+    Mouse0: 'Left Click', Mouse1: 'Middle Click', Mouse2: 'Right Click', Mouse3: 'Mouse Back', Mouse4: 'Mouse Fwd',
+    WheelUp: 'Scroll Up', WheelDown: 'Scroll Down',
     ControlLeft: 'LCtrl', ControlRight: 'RCtrl', AltLeft: 'LAlt', AltRight: 'RAlt', BracketLeft: '[', BracketRight: ']', Minus: '-', Equal: '=',
   };
   return map[code] ?? code;

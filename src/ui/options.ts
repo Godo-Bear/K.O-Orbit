@@ -55,6 +55,7 @@ export function controlsGuide(): HTMLElement {
           el('tr', {}, el('td', {}, ACTION_LABELS[a]), el('td', {}, fmt(k1[a])), el('td', {}, fmt(k2[a])), el('td', {}, a === 'smash' ? `Right stick${pad(a) !== '—' ? ' / ' + pad(a) : ''}` : pad(a)))),
       )),
     el('ul', { class: 'move-guide' },
+      el('li', {}, el('b', {}, 'Mouse (Keys 1 default): '), 'Left click = attack, right click = special, middle click = shield, scroll up = jump, scroll down = smash. Rebind any mouse button or scroll direction in Controls.'),
       el('li', {}, el('b', {}, 'Dash: '), 'tap a direction (keyboard) or flick the stick. Hold to run.'),
       el('li', {}, el('b', {}, 'Tilts: '), 'Attack + direction. ', el('b', {}, 'Smash: '), 'Smash key + direction, right stick, or flick + Attack. Hold to charge.'),
       el('li', {}, el('b', {}, 'Specials: '), 'Special + neutral / side / up (recovery) / down.'),
@@ -117,13 +118,13 @@ export function controlsScreen(app: App, back: () => void): HTMLElement {
     const idx = tab === 'kb1' ? 0 : 1;
     const sch = save.kb[idx];
     mount(body,
-      el('p', { class: 'muted small' }, 'Click a binding (or select it and press Enter / A), then press the new key. Each action has a primary and secondary key. Conflicting keys are removed from other actions in this scheme.'),
+      el('p', { class: 'muted small' }, 'Click a binding (or select it and press Enter / A), then press the new key — or click a mouse button (left / right / middle / side) or move the scroll wheel. Each action has a primary and secondary binding. Conflicting bindings are removed from other actions in this scheme.'),
       el('div', { class: 'bind-table' }, ACTIONS.map((a) => el('div', { class: 'bind-row' },
         el('span', { class: 'bind-name' }, ACTION_LABELS[a]),
         [0, 1].map((slot) => {
           const code = sch.keys[a][slot];
           const b = btn(code ? keyLabel(code) : '—', () => {
-            cancelCapture(); capturing = b; b.classList.add('capturing'); b.textContent = 'Press a key…';
+            cancelCapture(); capturing = b; b.classList.add('capturing'); b.textContent = 'Press a key, click or scroll…';
             input.captureKey = (k) => {
               capturing = null;
               for (const other of ACTIONS) sch.keys[other] = sch.keys[other].filter((x) => x !== k);

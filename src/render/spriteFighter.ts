@@ -1,13 +1,82 @@
 import type { Fighter } from '../sim/fighter';
-import { ART_FRAMING, drawArt, getArt } from './art';
+import { ART_FRAMING, drawArt, drawArtRect, getArt, type CharRig, type RigPart } from './art';
+import { base, type Pose } from './rig';
+
+/** Direction (radians from straight-down, + = forward) from a 2-segment limb's root to its tip. */
+const limbDir = (a: [number, number]) => Math.atan2(Math.sin(a[0]) + Math.sin(a[0] + a[1]), Math.cos(a[0]) + Math.cos(a[0] + a[1]));
+const IDLE = base();
+const IDLE_DIR = { armF: limbDir(IDLE.armF), armB: limbDir(IDLE.armB), legF: limbDir(IDLE.legF), legB: limbDir(IDLE.legB) };
+
+/** Attack progress: -1..0 wind-up, 1 = striking, decays to 0 in recovery. */
+export function attackK(f: Fighter): number {
+  const m = f.move;
+  if (f.state !== 'attack' || !m) return 0;
+  if (f.charging) return -1;
+  const mf = f.moveFrame;
+  const hb = m.hitboxes.find((h) => mf >= h.s && mf <= h.e) ?? m.hitboxes[0];
+  const s0 = hb ? hb.s : 8, e0 = m.hitboxes.reduce((v, h) => Math.max(v, h.e), hb ? hb.e : 18);
+  return mf < s0 ? -(1 - mf / s0) : mf <= e0 ? 1 : Math.max(0, 1 - (mf - e0) / Math.max(6, (m.total - e0) * 0.7));
+}
+
+/** Cut-out puppet: the user's art sliced into body + limbs, driven by the (spring-smoothed) skeleton pose. */
+function drawPuppet(ctx: CanvasRenderingContext2D, rig: CharRig, f: Fighter, pose: Pose, H: number, flash: number) {
+  const k = H / rig.h;
+  ctx.scale(k, k);
+  ctx.translate(-rig.w / 2, -rig.h);
+  const legs = rig.parts.filter((p) => p.name.startsWith('leg'));
+  const hip: [number, number] = legs.length ? [(legs[0].pivot[0] + legs[legs.length - 1].pivot[0]) / 2, (legs[0].pivot[1] + legs[legs.length - 1].pivot[1]) / 2] : [rig.w / 2, rig.h * 0.55];
+  const ak = attackK(f);
+  const limb = f.move?.limb ?? '';
+  const airy = f.state === 'air' || f.state === 'helpless' || f.state === 'hitstun' || f.state === 'ledge' || f.state === 'airdodge';
+  const rotOf = (p: RigPart) => {
+    const ang = pose[p.name];
+    const dir = limbDir(ang);
+    const art = Math.atan2(p.end[0] - p.pivot[0], p.end[1] - p.pivot[1]);
+    const striking = f.state === 'attack' && (limb === p.name || (limb === 'both' && p.name.startsWith('arm')));
+    let w = 0;
+    if (f.state === 'attack') w = Math.max(0, ak) * (striking ? 1 : 0.25);
+    else if (airy) w = 0.45;
+    else if (f.state === 'ledge') w = 0.8;
+    return { rot: (dir - IDLE_DIR[p.name]) * (1 - w) + (dir - art) * w, pop: striking && ak >= 1 ? 1.07 : 1, thrust: striking ? Math.max(0, ak) : 0 };
+  };
+  const drawPart = (p: RigPart) => {
+    const { rot, pop, thrust } = rotOf(p);
+    ctx.save();
+    ctx.translate(p.pivot[0], p.pivot[1]);
+    ctx.rotate(-rot);
+    if (thrust > 0) { // extend the striking limb along its own axis (a real thrust, not just a swing)
+      const dx = p.end[0] - p.pivot[0], dy = p.end[1] - p.pivot[1];
+      const e = thrust * 0.16;
+      ctx.translate(dx * e, dy * e);
+    }
+    if (pop !== 1) ctx.scale(pop, pop);
+    ctx.translate(-p.pivot[0], -p.pivot[1]);
+    drawArtRect(ctx, p.img, p.off[0], p.off[1], p.img.w, p.img.h, flash);
+    ctx.restore();
+  };
+  const lean = () => { ctx.translate(hip[0], hip[1]); ctx.rotate(pose.lean * 0.8); ctx.translate(-hip[0], -hip[1]); };
+  const part = (n: RigPart['name']) => rig.parts.find((p) => p.name === n);
+  const legB = part('legB'), legF = part('legF'), armB = part('armB'), armF = part('armF');
+  if (legB) drawPart(legB);
+  ctx.save(); lean();
+  if (armB) drawPart(armB);
+  drawArtRect(ctx, rig.body, 0, 0, rig.body.w, rig.body.h, flash);
+  ctx.restore();
+  if (legF) drawPart(legF);
+  ctx.save(); lean();
+  if (armF) drawPart(armF);
+  ctx.restore();
+}
 
 /**
  * Animate a fighter's illustrated artwork (single key-art sprite) with squash/stretch,
  * leans, flips, rolls, tumbles and attack lunges toward the active hitbox.
  */
-export function drawSpriteFighter(ctx: CanvasRenderingContext2D, f: Fighter, x: number, y: number, t: number, flash: number, alpha: number) {
-  const a = getArt(f.char.id)?.full;
+export function drawSpriteFighter(ctx: CanvasRenderingContext2D, f: Fighter, x: number, y: number, t: number, flash: number, alpha: number, pose?: Pose) {
+  const ca = getArt(f.char.id);
+  const a = ca?.full;
   if (!a) return false;
+  const rig = pose ? ca?.rig : undefined;
   const fr = ART_FRAMING[f.char.id] ?? { height: 1.12, faces: 1 };
   const H = f.H * fr.height;
   const sf = f.stateFrame;
@@ -62,6 +131,11 @@ export function drawSpriteFighter(ctx: CanvasRenderingContext2D, f: Fighter, x: 
       break;
     }
   }
+  if (rig) {
+    if (f.state === 'attack') { rot *= 0.35; ox *= 0.6; }
+    if (f.state === 'walk' || f.state === 'run' || f.state === 'dash') rot *= 0.5;
+    if (f.state === 'ledge') rot = 0;
+  }
   ctx.save();
   ctx.globalAlpha *= alpha;
   ctx.translate(x, y);
@@ -70,7 +144,8 @@ export function drawSpriteFighter(ctx: CanvasRenderingContext2D, f: Fighter, x: 
   if (rot) { ctx.translate(0, pivotY); ctx.rotate(rot); ctx.translate(0, -pivotY); }
   if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
   // soft contact shadow under the sprite
-  drawArt(ctx, a, 0, 0, H, flash);
+  if (rig && pose) drawPuppet(ctx, rig, f, pose, H, flash);
+  else drawArt(ctx, a, 0, 0, H, flash);
   ctx.restore();
   return true;
 }

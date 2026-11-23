@@ -67,6 +67,10 @@ scripts/headless.ts  simulation smoke tests
 ## Character art
 
 Fighters can render with your **illustrated character art** (Settings → Fighter art) or as an animated vector rig.
+
+**Cut-out puppets:** each character's art is sliced into a body and four limbs (arms and legs) with shoulder and hip pivots. Where the limbs covered the body, it is repainted with a shadowed fill. The pieces are driven by the same skeleton as the vector rig, so punches, kicks and sword swings move the real limbs, and striking limbs thrust out along their own axis. Limb pivots and outlines are listed in `RIGS` in `scripts/cutout.py`.
+
+**Animation:** every pose (puppet and vector) runs through a slightly under-damped spring, so strikes snap out, overshoot a touch and settle, and transitions never pop.
 The art is cut from the reference sheets in `art-src/` by `scripts/cutout.py`, which removes the background, keeps the main figure and exports `public/art/<id>_full.png`, `<id>_head.png` and a manifest. To add or replace art:
 
 ```bash

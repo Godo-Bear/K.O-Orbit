@@ -3,14 +3,14 @@ import type { CharDef, MoveDef } from '../sim/types';
 import { getArt, drawArt } from './art';
 
 /** Procedural skeletal pose: angles measured from straight-down, + = toward facing. */
-interface Pose {
+export interface Pose {
   lean: number; rot: number; hipY: number;
   armF: [number, number]; armB: [number, number];
   legF: [number, number]; legB: [number, number];
   squash: number;
 }
 
-const base = (): Pose => ({ lean: 0, rot: 0, hipY: 0, armF: [0.3, 0.5], armB: [-0.25, 0.4], legF: [0.12, -0.1], legB: [-0.12, -0.05], squash: 1 });
+export const base = (): Pose => ({ lean: 0, rot: 0, hipY: 0, armF: [0.3, 0.5], armB: [-0.25, 0.4], legF: [0.12, -0.1], legB: [-0.12, -0.05], squash: 1 });
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const SHOULDER = { x: 0, y: -76 }, HIP = { x: 0, y: -45 };
 const ARM = 21, LEG = 23;

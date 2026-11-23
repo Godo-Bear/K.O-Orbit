@@ -5,7 +5,9 @@
  */
 type Src = HTMLImageElement | HTMLCanvasElement;
 export interface ArtImage { levels: Src[]; w: number; h: number; flash: HTMLCanvasElement }
-export interface CharArt { full?: ArtImage; head?: ArtImage }
+export interface RigPart { name: 'armF' | 'armB' | 'legF' | 'legB'; layer: 'front' | 'back'; pivot: [number, number]; end: [number, number]; off: [number, number]; img: ArtImage }
+export interface CharRig { w: number; h: number; body: ArtImage; parts: RigPart[] }
+export interface CharArt { full?: ArtImage; head?: ArtImage; rig?: CharRig }
 
 /** Per-fighter framing: sprite height relative to hurtbox, head sprite size & neck anchor. */
 export const ART_FRAMING: Record<string, { height: number; headH: number; headY: number; faces: number }> = {
@@ -45,10 +47,21 @@ export async function loadArt(): Promise<void> {
   try {
     const r = await fetch(`${import.meta.env.BASE_URL}art/manifest.json`, { cache: 'no-cache' });
     if (!r.ok) return;
-    const manifest = await r.json() as Record<string, unknown>;
-    await Promise.all(Object.keys(manifest).map(async (id) => {
-      const [full, head] = await Promise.all([loadImg(`${import.meta.env.BASE_URL}art/${id}_full.png`), loadImg(`${import.meta.env.BASE_URL}art/${id}_head.png`)]);
-      art.set(id, { full: full ? build(full) : undefined, head: head ? build(head) : undefined });
+    const manifest = await r.json() as Record<string, { rig?: { size: [number, number]; parts: { name: RigPart['name']; layer: RigPart['layer']; pivot: [number, number]; end: [number, number]; off: [number, number] }[] } }>;
+    const base = `${import.meta.env.BASE_URL}art/`;
+    await Promise.all(Object.entries(manifest).map(async ([id, m]) => {
+      const [full, head] = await Promise.all([loadImg(`${base}${id}_full.png`), loadImg(`${base}${id}_head.png`)]);
+      const entry: CharArt = { full: full ? build(full) : undefined, head: head ? build(head) : undefined };
+      if (m.rig) {
+        const imgs = await Promise.all([loadImg(`${base}${id}_rig_body.png`), ...m.rig.parts.map((p) => loadImg(`${base}${id}_rig_${p.name}.png`))]);
+        if (imgs.every(Boolean)) {
+          entry.rig = {
+            w: m.rig.size[0], h: m.rig.size[1], body: build(imgs[0]!),
+            parts: m.rig.parts.map((p, i) => ({ ...p, img: build(imgs[i + 1]!) })),
+          };
+        }
+      }
+      art.set(id, entry);
     }));
   } catch { /* offline / missing — vector rigs are used */ }
 }
@@ -64,6 +77,15 @@ export function pickLevel(a: ArtImage, screenH: number): Src {
 }
 
 /** Draw an art image so its bottom-centre sits at (x, y) with height h (current transform units). */
+/** Draw an art image with its top-left at (x, y) and size (w, h) — used for rig pieces. */
+export function drawArtRect(ctx: CanvasRenderingContext2D, a: ArtImage, x: number, y: number, w: number, h: number, flash = 0) {
+  const m = ctx.getTransform();
+  const scale = Math.hypot(m.a, m.b) || 1;
+  const src = pickLevel(a, h * scale);
+  ctx.drawImage(src, x, y, w, h);
+  if (flash > 0) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * Math.min(1, flash); ctx.drawImage(a.flash, x, y, w, h); ctx.globalAlpha = ga; }
+}
+
 export function drawArt(ctx: CanvasRenderingContext2D, a: ArtImage, x: number, y: number, h: number, flash = 0, anchorY = 1) {
   const m = ctx.getTransform();
   const scale = Math.hypot(m.a, m.b) || 1;

@@ -8,6 +8,7 @@ import { Effects, FX_COLORS } from './effects';
 import { computePose, drawRig, drawPortrait, roundRect, type Expr } from './rig';
 import { drawStage } from './stagePaint';
 import { drawSpriteFighter } from './spriteFighter';
+import { springPose } from './poseSpring';
 import { getArt, drawArt, hasArt } from './art';
 import { save } from '../core/save';
 
@@ -39,6 +40,8 @@ export class Renderer {
   private trails = new Map<number, { x: number; y: number; r: number }[]>();
   private shieldPulse = new Map<number, number>();
   private intensity = 2;
+  private frameMs = 16.67;
+  private lastT = 0;
 
   constructor(public canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true } as CanvasRenderingContext2DSettings);
@@ -148,6 +151,7 @@ export class Renderer {
     const ctx = this.ctx;
     if (this.bgStage !== w.stage.id) { this.bg = new Background(w.stage); this.bgStage = w.stage.id; }
     this.updateCamera(w, alpha);
+    const nowT = performance.now(); this.frameMs = this.lastT ? Math.min(50, nowT - this.lastT) : 16.67; this.lastT = nowT;
     this.intensity = opts.intensity ?? 2;
     this.effects.density = this.intensity === 2 ? 1 : this.intensity === 1 ? 0.6 : 0.35;
     if (!opts.paused) this.effects.update();
@@ -244,7 +248,9 @@ export class Renderer {
       ctx.globalAlpha = 1;
     }
     const intang = f.intangible();
-    const pose = computePose(f, this.t);
+    const rawPose = computePose(f, this.t);
+    const snap = f.state === 'respawn' || (f.stateFrame <= 1 && (f.state === 'ledge' || f.state === 'knockdown'));
+    const pose = opts.paused ? springPose(f.slot, rawPose, 0, false) : springPose(f.slot, rawPose, this.frameMs, snap, f.state === 'attack' && f.moveFrame > 0);
     // smash charge: shake + gathering glow
     if (f.charging) {
       x += Math.sin(this.t * 2.3) * Math.min(3, 0.6 + f.charge * 0.05);
@@ -268,7 +274,7 @@ export class Renderer {
     if (illustrated) {
       const fl = f.flash > 4 ? 0.85 : f.charging && (this.t >> 2) % 2 ? 0.35 : f.state === 'dizzy' && (this.t >> 3) % 2 ? 0.3 : 0;
       const al = intang ? ((this.t >> 2) % 2 ? 0.55 : 0.85) : 1;
-      drawSpriteFighter(ctx, f, x, y, this.t, fl, al);
+      drawSpriteFighter(ctx, f, x, y, this.t, fl, al, pose);
     }
     ctx.save();
     ctx.translate(x, y);

@@ -13,8 +13,8 @@ export function showGallery() {
   root.style.cssText = 'position:static;display:block;padding:16px;background:#14102e';
   const dpr = window.devicePixelRatio || 1;
   const poses: [FState, string | null, number, Expr][] = [
-    ['idle', null, 0, 'idle'], ['run', null, 6, 'idle'], ['air', null, 2, 'idle'], ['attack', 'fsmash', 16, 'fierce'], ['attack', 'uair', 7, 'fierce'],
-    ['attack', 'dspec', 15, 'fierce'], ['shield', null, 0, 'idle'], ['hitstun', null, 4, 'hurt'], ['ledge', null, 10, 'idle'], ['crouch', null, 0, 'blink'],
+    ['idle', null, 0, 'idle'], ['run', null, 6, 'idle'], ['air', null, 2, 'idle'], ['attack', 'jab', 4, 'fierce'], ['attack', 'ftilt', 8, 'fierce'],
+    ['attack', 'fsmash', 16, 'fierce'], ['attack', 'uair', 7, 'fierce'], ['attack', 'dtilt', 6, 'fierce'], ['attack', 'bair', 8, 'fierce'], ['hitstun', null, 4, 'hurt'], ['ledge', null, 10, 'idle'],
   ];
   for (const c of CHARACTERS) {
     const row = document.createElement('div');
@@ -37,7 +37,7 @@ export function showGallery() {
       if (hasArt(c.id)) {
         f.djAge = 999;
         ctx.save(); const k = 1.25 / Math.max(1, c.stats.size * 0.9); ctx.translate(65 + i * 130, 175); ctx.scale(k, k);
-        drawSpriteFighter(ctx, f, 0, 0, 40, st === 'hitstun' ? 0.5 : 0, 1);
+        drawSpriteFighter(ctx, f, 0, 0, 40, 0, 1, computePose(f, 0));
         ctx.restore();
         ctx.fillStyle = '#9aa'; ctx.font = '11px sans-serif'; ctx.fillText(mv ?? st, 30 + i * 130, 195);
         return;

@@ -1,0 +1,23 @@
+{
+  "name": "ko-orbit",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test:sim": "esbuild scripts/headless.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/headless.mjs --log-level=warning && node node_modules/.cache/headless.mjs",
+    "cf:dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.12",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "wrangler": "^4.166.0",
+    "ws": "^8.18.0"
+  }
+}

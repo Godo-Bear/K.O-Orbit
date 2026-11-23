@@ -1,0 +1,121 @@
+/** Persistent save data (localStorage) — settings, story progress, unlocks, control bindings. */
+
+export type Action = 'up' | 'down' | 'left' | 'right' | 'jump' | 'attack' | 'special' | 'shield' | 'smash' | 'pause';
+export const ACTIONS: Action[] = ['up', 'down', 'left', 'right', 'jump', 'attack', 'special', 'shield', 'smash', 'pause'];
+export const ACTION_LABELS: Record<Action, string> = {
+  up: 'Up', down: 'Down', left: 'Left', right: 'Right', jump: 'Jump', attack: 'Attack',
+  special: 'Special', shield: 'Shield / Dodge', smash: 'Smash Attack', pause: 'Pause',
+};
+
+export interface KeyScheme { keys: Record<Action, string[]>; tapJump: boolean }
+export interface PadScheme { buttons: Partial<Record<Action, number[]>>; tapJump: boolean; deadzone: number }
+
+export interface Settings {
+  master: number; sfx: number; muted: boolean;
+  showPerf: boolean; screenShake: boolean; renderScale: number;
+  onlineServer: string; playerName: string; inputDelay: number;
+}
+
+export interface StoryProgress { cleared: Record<string, number> } // stageId -> best stars (1..3)
+
+export interface SaveData {
+  version: number;
+  settings: Settings;
+  story: StoryProgress;
+  unlocked: string[]; // unlocked fighter ids (beyond starters)
+  kb: KeyScheme[]; // keyboard schemes (KB1, KB2)
+  pad: PadScheme; // shared gamepad mapping (standard layout)
+}
+
+export const DEFAULT_KB: KeyScheme[] = [
+  {
+    tapJump: true,
+    keys: {
+      up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], jump: ['Space'],
+      attack: ['KeyJ'], special: ['KeyK'], shield: ['KeyL'], smash: ['KeyI'], pause: ['Escape'],
+    },
+  },
+  {
+    tapJump: true,
+    keys: {
+      up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], jump: ['Numpad0', 'ShiftRight'],
+      attack: ['Numpad1', 'Comma'], special: ['Numpad2', 'Period'], shield: ['Numpad3', 'Slash'], smash: ['Numpad5', 'KeyM'], pause: ['Backspace'],
+    },
+  },
+];
+
+export const DEFAULT_PAD: PadScheme = {
+  tapJump: true,
+  deadzone: 0.25,
+  // Standard Gamepad mapping: 0=A 1=B 2=X 3=Y 4=LB 5=RB 6=LT 7=RT 9=Start 12-15 dpad
+  buttons: { jump: [2, 3], attack: [0], special: [1], shield: [4, 5, 6, 7], smash: [], pause: [9] },
+};
+
+const KEY = 'ko-orbit-save-v1';
+
+function defaults(): SaveData {
+  return {
+    version: 1,
+    settings: {
+      master: 0.7, sfx: 0.9, muted: false, showPerf: false, screenShake: true, renderScale: 1,
+      onlineServer: '', playerName: 'Player', inputDelay: 2,
+    },
+    story: { cleared: {} },
+    unlocked: [],
+    kb: structuredClone(DEFAULT_KB),
+    pad: structuredClone(DEFAULT_PAD),
+  };
+}
+
+function load(): SaveData {
+  const d = defaults();
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return d;
+    const p = JSON.parse(raw);
+    return {
+      ...d, ...p,
+      settings: { ...d.settings, ...(p.settings || {}) },
+      story: { cleared: { ...(p.story?.cleared || {}) } },
+      unlocked: Array.isArray(p.unlocked) ? p.unlocked : [],
+      kb: Array.isArray(p.kb) && p.kb.length === 2
+        ? p.kb.map((s: KeyScheme, i: number) => ({ tapJump: s.tapJump ?? true, keys: { ...d.kb[i].keys, ...(s.keys || {}) } }))
+        : d.kb,
+      pad: { ...d.pad, ...(p.pad || {}), buttons: { ...d.pad.buttons, ...(p.pad?.buttons || {}) } },
+    };
+  } catch {
+    return d;
+  }
+}
+
+export const save: SaveData = load();
+
+export function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify(save)); } catch { /* storage unavailable */ }
+}
+
+export function resetProgress() {
+  save.story = { cleared: {} };
+  save.unlocked = [];
+  persist();
+}
+
+export function resetControls() {
+  save.kb = structuredClone(DEFAULT_KB);
+  save.pad = structuredClone(DEFAULT_PAD);
+  persist();
+}
+
+export function keyLabel(code: string): string {
+  if (code.startsWith('Key')) return code.slice(3);
+  if (code.startsWith('Digit')) return code.slice(5);
+  if (code.startsWith('Numpad')) return 'Num' + code.slice(6);
+  const map: Record<string, string> = {
+    ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Space: 'Space', ShiftRight: 'RShift', ShiftLeft: 'LShift',
+    Comma: ',', Period: '.', Slash: '/', Semicolon: ';', Quote: "'", Escape: 'Esc', Backspace: 'Bksp', Enter: 'Enter',
+    ControlLeft: 'LCtrl', ControlRight: 'RCtrl', AltLeft: 'LAlt', AltRight: 'RAlt', BracketLeft: '[', BracketRight: ']', Minus: '-', Equal: '=',
+  };
+  return map[code] ?? code;
+}
+
+export const PAD_BUTTON_NAMES = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'Select', 'Start', 'LS', 'RS', 'D↑', 'D↓', 'D←', 'D→', 'Home'];

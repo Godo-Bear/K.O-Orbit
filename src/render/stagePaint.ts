@@ -80,6 +80,38 @@ function makePattern(ctx: CanvasRenderingContext2D, theme: StageDef['theme']): C
       }
       break;
     }
+    case 'reef': {
+      for (let i = 0; i < 16; i++) { const x = (i * 23) % 64, y = (i * 37) % 64; g.fillStyle = i % 3 ? 'rgba(255,160,190,0.25)' : 'rgba(120,255,230,0.2)'; g.beginPath(); g.arc(x, y, 2 + (i % 3), 0, Math.PI * 2); g.fill(); }
+      g.strokeStyle = 'rgba(255,255,255,0.12)'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(0, 40); g.quadraticCurveTo(32, 30, 64, 42); g.stroke();
+      break;
+    }
+    case 'dunes': {
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 2; c++) {
+        const x = c * 32 + (r % 2) * 16 - 16, y = r * 16;
+        g.fillStyle = (r + c) % 2 ? 'rgba(255,230,180,0.12)' : 'rgba(80,40,10,0.1)'; g.fillRect(x + 1, y + 1, 30, 14);
+        g.strokeStyle = 'rgba(90,50,20,0.45)'; g.lineWidth = 0.8; g.strokeRect(x + 0.5, y + 0.5, 31, 15);
+      }
+      g.fillStyle = 'rgba(200,60,40,0.35)'; g.fillRect(0, 30, 64, 3);
+      break;
+    }
+    case 'storm': {
+      for (let r = 0; r < 4; r++) { g.fillStyle = r % 2 ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.04)'; g.fillRect(0, r * 16, 64, 15); g.fillStyle = 'rgba(160,190,255,0.25)'; g.fillRect((r * 23) % 48, r * 16 + 6, 12, 1.2); }
+      g.fillStyle = 'rgba(190,220,255,0.35)'; g.fillRect(31, 0, 2, 64);
+      break;
+    }
+    case 'clockwork': {
+      for (let y = 0; y < 64; y += 32) for (let x = 0; x < 64; x += 32) {
+        g.fillStyle = (x + y) % 64 ? 'rgba(255,200,120,0.08)' : 'rgba(0,0,0,0.12)'; g.fillRect(x + 1, y + 1, 30, 30);
+        g.strokeStyle = 'rgba(255,210,140,0.25)'; g.lineWidth = 0.8; g.strokeRect(x + 1.5, y + 1.5, 29, 29);
+        g.fillStyle = 'rgba(255,220,150,0.6)'; for (const [rx, ry] of [[5, 5], [27, 5], [5, 27], [27, 27]]) { g.beginPath(); g.arc(x + rx, y + ry, 1.3, 0, Math.PI * 2); g.fill(); }
+      }
+      break;
+    }
+    case 'shrine': {
+      for (let y = 0; y < 64; y += 10) { g.fillStyle = y % 20 ? 'rgba(0,0,0,0.12)' : 'rgba(255,220,200,0.06)'; g.fillRect(0, y, 64, 9); g.strokeStyle = 'rgba(40,10,5,0.45)'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(0, y + 9.5); g.lineTo(64, y + 9.5); g.stroke(); }
+      g.fillStyle = 'rgba(40,10,5,0.5)'; g.beginPath(); g.arc(10, 15, 0.9, 0, Math.PI * 2); g.arc(50, 35, 0.9, 0, Math.PI * 2); g.fill();
+      break;
+    }
     case 'canopy': {
       for (let x = 2; x < 64; x += 7) { g.strokeStyle = 'rgba(30,15,5,0.35)'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + 3, 20, x - 3, 44, x + 1, 64); g.stroke(); }
       g.strokeStyle = 'rgba(255,220,170,0.12)'; g.lineWidth = 0.6; g.beginPath(); g.ellipse(40, 30, 6, 10, 0, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.ellipse(40, 30, 3, 5, 0, 0, Math.PI * 2); g.stroke();
@@ -147,6 +179,22 @@ function drawSolid(ctx: CanvasRenderingContext2D, stage: StageDef, p: Platform, 
       ctx.strokeStyle = '#3b2412'; ctx.lineCap = 'round';
       for (let i = 0; i < 6; i++) { ctx.lineWidth = 14 - i; const x = mx + (i - 2.5) * w * 0.14; ctx.beginPath(); ctx.moveTo(x, p.y + h * 0.8); ctx.bezierCurveTo(x + 30, p.y + h + 60, x - 40, p.y + h + 140, x + 10 * (i - 2), p.y + h + 260); ctx.stroke(); }
       break;
+    case 'reef':
+      for (let i = 0; i < 7; i++) { const x = mx + (i - 3) * w * 0.11; ctx.fillStyle = i % 2 ? '#ff8fb5' : '#ffb35a'; ctx.beginPath(); ctx.moveTo(x - 14, p.y + h * 0.7); ctx.quadraticCurveTo(x - 30, p.y + h + 30, x - 6, p.y + h + 60 + (i % 3) * 20); ctx.lineTo(x + 6, p.y + h * 0.8); ctx.fill(); }
+      break;
+    case 'clockwork':
+      for (const sx of [-1, 1]) {
+        ctx.save(); ctx.fillStyle = '#3a2412';
+        ctx.translate(mx + sx * w * 0.22, p.y + h - 10); ctx.rotate(t * 0.02 * sx);
+        ctx.beginPath(); for (let k = 0; k < 20; k++) { const a = (k / 20) * Math.PI * 2, rr = k % 2 ? 46 : 54; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.fill();
+        ctx.fillStyle = '#c98a3a'; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+      break;
+    case 'storm':
+      ctx.strokeStyle = 'rgba(190,220,255,0.6)'; ctx.lineWidth = 3;
+      if ((t % 200) < 8) { ctx.beginPath(); ctx.moveTo(mx - 40, p.y + h); ctx.lineTo(mx - 10, p.y + h + 70); ctx.lineTo(mx - 30, p.y + h + 90); ctx.lineTo(mx + 10, p.y + h + 180); ctx.stroke(); }
+      break;
     case 'nebula': case 'abyss':
       for (let i = 0; i < 5; i++) {
         const x = mx + (i - 2) * w * 0.12, L = 60 + (i % 2) * 50;
@@ -177,6 +225,23 @@ function drawSolid(ctx: CanvasRenderingContext2D, stage: StageDef, p: Platform, 
   ctx.fillStyle = tg; ctx.fillRect(p.x1, p.y, w, topH);
   // surface decoration
   switch (stage.theme) {
+    case 'dunes':
+      ctx.fillStyle = '#ffe2a8';
+      ctx.beginPath(); ctx.moveTo(p.x1 - 4, p.y + 6);
+      for (let x = p.x1; x <= p.x2; x += 60) ctx.quadraticCurveTo(x + 30, p.y - 6, x + 60, p.y + 3);
+      ctx.lineTo(p.x2 + 4, p.y + 8); ctx.lineTo(p.x1 - 4, p.y + 8); ctx.fill();
+      break;
+    case 'shrine':
+      ctx.fillStyle = '#ffc2d4';
+      for (let x = p.x1 + 20; x < p.x2 - 20; x += 37) { ctx.beginPath(); ctx.ellipse(x + ((x * 7) % 11), p.y + 2, 4, 2.2, x, 0, Math.PI * 2); ctx.fill(); }
+      break;
+    case 'reef':
+      ctx.fillStyle = '#ff9ec0';
+      for (let x = p.x1 + 30; x < p.x2 - 30; x += 80) { const hh = 10 + ((x * 13) % 9); ctx.beginPath(); ctx.moveTo(x - 6, p.y + 2); ctx.quadraticCurveTo(x - 10 + Math.sin(t * 0.04 + x) * 3, p.y - hh, x + Math.sin(t * 0.04 + x) * 3, p.y - hh - 4); ctx.quadraticCurveTo(x + 6, p.y - hh * 0.4, x + 6, p.y + 2); ctx.fill(); }
+      break;
+    case 'clockwork': case 'storm':
+      for (let x = p.x1 + 30; x < p.x2 - 20; x += 60) { ctx.fillStyle = (Math.floor(x / 60) + (t >> 4)) % 6 === 0 ? th.glow : 'rgba(255,255,255,0.22)'; ctx.fillRect(x, p.y + topH - 5, 24, 3); }
+      break;
     case 'ruins': case 'canopy':
       ctx.fillStyle = stage.theme === 'canopy' ? '#9be36a' : '#a6e07a';
       for (let x = p.x1 + 6; x < p.x2 - 6; x += 14) { const hh = 6 + ((x * 13) % 7) + Math.sin(t * 0.04 + x) * 1.2; ctx.beginPath(); ctx.moveTo(x - 4, p.y + 2); ctx.lineTo(x + Math.sin(t * 0.03 + x * 0.1) * 2, p.y - hh); ctx.lineTo(x + 4, p.y + 2); ctx.fill(); }

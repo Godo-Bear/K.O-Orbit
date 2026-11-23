@@ -2,6 +2,8 @@
 import { CHARACTERS } from '../sim/characters';
 import { Fighter, type FState } from '../sim/fighter';
 import { computePose, drawRig, drawHeroCard, type Expr } from '../render/rig';
+import { hasArt } from '../render/art';
+import { drawSpriteFighter } from '../render/spriteFighter';
 
 export function showGallery() {
   document.body.style.overflow = 'auto';
@@ -32,6 +34,14 @@ export function showGallery() {
       f.state = st; f.stateFrame = fr; f.vy = st === 'air' ? -6 : 0;
       if (st !== 'air' && st !== 'ledge' && st !== 'hitstun') f.ground = {} as any;
       if (mv) { f.move = c.moves[mv]; f.moveFrame = fr; }
+      if (hasArt(c.id)) {
+        f.djAge = 999;
+        ctx.save(); const k = 1.25 / Math.max(1, c.stats.size * 0.9); ctx.translate(65 + i * 130, 175); ctx.scale(k, k);
+        drawSpriteFighter(ctx, f, 0, 0, 40, st === 'hitstun' ? 0.5 : 0, 1);
+        ctx.restore();
+        ctx.fillStyle = '#9aa'; ctx.font = '11px sans-serif'; ctx.fillText(mv ?? st, 30 + i * 130, 195);
+        return;
+      }
       const pose = computePose(f, 0);
       ctx.save(); ctx.translate(65 + i * 130, 175); ctx.scale(1.25 / Math.max(1, c.stats.size * 0.9), 1.25 / Math.max(1, c.stats.size * 0.9));
       if (pose.rot) { ctx.translate(0, -50); ctx.rotate(pose.rot); ctx.translate(0, 50); }

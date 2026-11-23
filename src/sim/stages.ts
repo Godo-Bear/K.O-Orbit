@@ -9,7 +9,8 @@ export interface PlatformDef {
 export interface StageDef {
   id: string;
   name: string;
-  theme: 'station' | 'nebula' | 'crater' | 'ruins' | 'forge' | 'glacier' | 'metro' | 'canopy' | 'hyperlane' | 'abyss';
+  theme: 'station' | 'nebula' | 'crater' | 'ruins' | 'forge' | 'glacier' | 'metro' | 'canopy' | 'hyperlane' | 'abyss' | 'reef' | 'dunes' | 'storm' | 'clockwork' | 'shrine';
+  gravity?: number; // stage gravity multiplier (underwater < 1)
   traction?: number; // ground friction multiplier (ice < 1)
   platforms: PlatformDef[];
   blast: { l: number; r: number; t: number; b: number };
@@ -133,6 +134,66 @@ export const STAGES: StageDef[] = [
     ],
     blast: { l: -1800, r: 1800, t: -1350, b: 900 },
     sky: ['#000000', '#12041f', '#3a0a4a'],
+  },
+  {
+    id: 'reef', name: 'Coral Depths', theme: 'reef', gravity: 0.82,
+    desc: 'A sunken arena among the coral. Floaty, buoyant jumps.',
+    platforms: [
+      { x1: -640, x2: 640, y: 0, solid: true, h: 240 },
+      { x1: -470, x2: -230, y: -220, move: { ax: 0, ay: 45, period: 360 } },
+      { x1: 230, x2: 470, y: -220, move: { ax: 0, ay: 45, period: 360, phase: 0.5 } },
+      { x1: -130, x2: 130, y: -420 },
+    ],
+    blast: { l: -1750, r: 1750, t: -1400, b: 900 },
+    sky: ['#032a4a', '#0a6d8f', '#4fd6c8'],
+  },
+  {
+    id: 'dunes', name: 'Desert Mirage', theme: 'dunes',
+    desc: 'Sun-baked sandstone ruins. A flying carpet glides overhead.',
+    platforms: [
+      { x1: -760, x2: 760, y: 0, solid: true, h: 250 },
+      { x1: -170, x2: 170, y: -270, move: { ax: 460, ay: 30, period: 600 } },
+      { x1: -560, x2: -360, y: -150 },
+      { x1: 360, x2: 560, y: -150 },
+    ],
+    blast: { l: -1800, r: 1800, t: -1350, b: 900 },
+    sky: ['#f08a3c', '#ffc46b', '#ffe8b0'],
+  },
+  {
+    id: 'storm', name: 'Thunder Spire', theme: 'storm',
+    desc: 'The top of a lightning tower above a raging storm.',
+    platforms: [
+      { x1: -540, x2: 540, y: 0, solid: true, h: 300 },
+      { x1: -380, x2: -140, y: -240 },
+      { x1: 140, x2: 380, y: -240 },
+      { x1: -120, x2: 120, y: -460, move: { ax: 160, ay: 0, period: 420 } },
+    ],
+    blast: { l: -1700, r: 1700, t: -1400, b: 900 },
+    sky: ['#0b0f1e', '#24304d', '#4a5878'],
+  },
+  {
+    id: 'clockwork', name: 'Clockwork Foundry', theme: 'clockwork',
+    desc: 'Brass gears turn as lifts cycle between floors.',
+    platforms: [
+      { x1: -700, x2: 700, y: 0, solid: true, h: 240 },
+      { x1: -520, x2: -300, y: -200, move: { ax: 0, ay: 120, period: 300 } },
+      { x1: 300, x2: 520, y: -200, move: { ax: 0, ay: 120, period: 300, phase: 0.5 } },
+      { x1: -140, x2: 140, y: -380 },
+    ],
+    blast: { l: -1750, r: 1750, t: -1350, b: 900 },
+    sky: ['#1c120a', '#4a2f17', '#a86b2c'],
+  },
+  {
+    id: 'shrine', name: 'Sakura Shrine', theme: 'shrine',
+    desc: 'A mountain shrine at dusk, petals on the wind.',
+    platforms: [
+      { x1: -680, x2: 680, y: 0, solid: true, h: 230 },
+      { x1: -500, x2: -260, y: -210 },
+      { x1: 260, x2: 500, y: -210 },
+      { x1: -170, x2: 170, y: -400 },
+    ],
+    blast: { l: -1750, r: 1750, t: -1350, b: 900 },
+    sky: ['#2a1a3d', '#c25a7c', '#ffc9a8'],
   },
 ];
 

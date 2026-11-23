@@ -1,13 +1,14 @@
 import { save, persist, resetProgress, resetControls, ACTIONS, ACTION_LABELS, keyLabel, PAD_BUTTON_NAMES, type Action } from '../core/save';
 import { input } from '../core/input';
 import { synth } from '../audio/synth';
+import { music } from '../audio/music';
 import { unlockAll } from '../story/campaign';
 import { el, btn, cycler, slider, toggle, toast, mount } from './dom';
 import type { App } from './app';
 
 export function settingsScreen(app: App, back: () => void): HTMLElement {
   const s = save.settings;
-  const set = (fn: () => void) => { fn(); persist(); synth.applyVolume(); };
+  const set = (fn: () => void) => { fn(); persist(); synth.applyVolume(); music.applyVolume(); };
   let confirmReset = false;
   const resetBtn = btn('Reset Story Progress', () => {
     if (!confirmReset) { confirmReset = true; resetBtn.textContent = 'Press again to confirm reset'; return; }
@@ -21,8 +22,10 @@ export function settingsScreen(app: App, back: () => void): HTMLElement {
       el('h3', {}, 'Audio'),
       slider('Master volume', s.master, 0, 1, 0.05, (v) => set(() => { s.master = v; })),
       slider('Effects volume', s.sfx, 0, 1, 0.05, (v) => set(() => { s.sfx = v; })),
+      slider('Music volume', s.music, 0, 1, 0.05, (v) => set(() => { s.music = v; })),
       toggle('Mute', s.muted, (v) => set(() => { s.muted = v; })),
       el('h3', {}, 'Video & Performance'),
+      cycler('Fighter art', [{ v: 'illustrated', label: 'Illustrated (character art)' }, { v: 'rig', label: 'Animated vector rig' }], s.fighterStyle, (v) => set(() => { s.fighterStyle = v; })),
       cycler('Render resolution', [{ v: 1, label: 'Native (4K/Retina)' }, { v: 0.75, label: '75%' }, { v: 0.5, label: '50%' }], s.renderScale, (v) => set(() => { s.renderScale = v; app.renderer.setRenderScale(v); })),
       cycler('Visual intensity', [{ v: 2, label: 'Full' }, { v: 1, label: 'Reduced' }, { v: 0, label: 'Minimal' }], s.intensity, (v) => set(() => { s.intensity = v; })),
       el('p', { class: 'muted small' }, 'Reduced / Minimal tone down flashes, screen shake and particle density (defaults to Reduced when your OS requests reduced motion).'),

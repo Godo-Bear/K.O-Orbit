@@ -3,8 +3,9 @@ import type { GameEvent, Fx } from '../sim/types';
 
 /** Procedural Web Audio synthesizer — every sound is generated at runtime, no assets. */
 class Synth {
-  private ctx: AudioContext | null = null;
-  private master: GainNode | null = null;
+  ctx: AudioContext | null = null;
+  master: GainNode | null = null;
+  onUnlock: (() => void) | null = null;
   private sfxBus: GainNode | null = null;
   private noise: AudioBuffer | null = null;
   private voicesThisFrame = 0;
@@ -26,6 +27,7 @@ class Synth {
     const d = this.noise.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
     this.applyVolume();
+    this.onUnlock?.();
   }
 
   applyVolume() {

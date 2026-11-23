@@ -3,6 +3,7 @@ import { input } from '../core/input';
 import { save, persist } from '../core/save';
 import { PLAYER_COLORS, playerLabel } from '../core/constants';
 import { synth } from '../audio/synth';
+import { music, stageTrack, TRACKS } from '../audio/music';
 import { Renderer } from '../render/renderer';
 import { drawPortrait, drawHeroCard } from '../render/rig';
 import { Session, type MatchConfig, type SessionKind } from '../game/session';
@@ -92,6 +93,7 @@ export class App {
 
   // ------------------------------------------------------------------ screen helpers
   show(content: HTMLElement, back: (() => void) | null, cls = '') {
+    if (!this.session) music.play('menu');
     this.ui.innerHTML = '';
     this.ui.className = `ui-root ${cls}`;
     this.ui.append(content);
@@ -156,9 +158,12 @@ export class App {
     this.session = s;
     this.renderer.resetCamera();
     synth.unlock();
+    const track = stageTrack(cfg.rules.stageId);
+    music.play(track); music.setDucked(false);
+    toast(`♪ ${TRACKS[track].name}`, 2200);
   }
 
-  endSession() { this.session = null; this.closePause(); this.renderer.resetCamera(); }
+  endSession() { this.session = null; this.closePause(); this.renderer.resetCamera(); music.setDucked(false); }
 
   showPause() {
     if (this.pauseEl) return;
@@ -189,6 +194,7 @@ export class App {
       guide,
     );
     this.pauseEl = el('div', { class: 'pause-overlay' }, box);
+    music.setDucked(true);
     document.body.append(this.pauseEl);
     nav.enabled = true;
     nav.attach(this.pauseEl, resume);
@@ -197,11 +203,13 @@ export class App {
   closePause() {
     if (!this.pauseEl) return;
     this.pauseEl.remove(); this.pauseEl = null;
+    music.setDucked(false);
     if (this.session) { nav.enabled = false; nav.root = null; }
   }
 
   results(s: Session, back: () => void) {
     const w = s.world;
+    music.play('victory');
     const places = w.placements();
     const story = s.cfg.story;
     let storyBlock: HTMLElement | null = null;

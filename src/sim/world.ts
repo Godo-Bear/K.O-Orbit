@@ -53,7 +53,7 @@ export class World {
     if (slots.length > MAX_PLAYERS) throw new Error(`Max ${MAX_PLAYERS} players`);
     this.rng = new Rng(seed);
     this.stage = stageById(rules.stageId);
-    this.gravityMul = rules.gravityMul ?? 1;
+    this.gravityMul = (rules.gravityMul ?? 1) * (this.stage.gravity ?? 1);
     this.damageMul = rules.damageMul ?? 1;
     this.platforms = this.stage.platforms.map((d, i) => new Platform(d, i));
     for (const p of this.platforms) {

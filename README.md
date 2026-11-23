@@ -1,6 +1,6 @@
 # K.O Orbit
 
-A fast, responsive platform fighter for the browser. It renders sharply at 4K, runs on a fixed 60 Hz timestep, and supports **up to 10 players (P1–P10)** locally and online. There are 8 fighters, 10 stages, a Practice mode, and an 8-stage Story Mode that unlocks 4 of the fighters.
+A fast, responsive platform fighter for the browser. It renders sharply at 4K, runs on a fixed 60 Hz timestep, and supports **up to 10 players (P1–P10)** locally and online. There are 8 fighters, 15 stages, a procedural soundtrack, a Practice mode, and an 8-stage Story Mode that unlocks 4 of the fighters.
 
 ## Quick start
 
@@ -63,6 +63,21 @@ scripts/headless.ts  simulation smoke tests
 - **Story Mode:** an 8-stage ladder with stars and fighter unlocks.
 - **Practice:** a training dummy that can stand, shield, crouch, jump or fight back as a level 1–9 CPU. It has a combo counter, damage readouts, a frame readout, position reset and dummy % presets, and hitboxes on F4.
 - **Online:** room-code play for up to 10 players.
+
+## Character art
+
+Fighters can render with your **illustrated character art** (Settings → Fighter art) or as an animated vector rig.
+The art is cut from the reference sheets in `art-src/` by `scripts/cutout.py`, which removes the background, keeps the main figure and exports `public/art/<id>_full.png`, `<id>_head.png` and a manifest. To add or replace art:
+
+```bash
+python3 scripts/cutout.py
+```
+
+The script needs Pillow. Fighters without art fall back to the vector rig automatically.
+
+## Music
+
+Every stage has its own procedurally composed theme. There are also menu and victory themes. Each track is a look-ahead Web Audio sequencer with drums, bass, pad, arpeggio and a seeded lead melody (`src/audio/music.ts`). The volume is under Settings → Music volume.
 
 ## Fighters
 

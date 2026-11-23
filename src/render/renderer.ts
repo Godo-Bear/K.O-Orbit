@@ -7,6 +7,9 @@ import { Background } from './background';
 import { Effects, FX_COLORS } from './effects';
 import { computePose, drawRig, drawPortrait, roundRect, type Expr } from './rig';
 import { drawStage } from './stagePaint';
+import { drawSpriteFighter } from './spriteFighter';
+import { getArt, drawArt, hasArt } from './art';
+import { save } from '../core/save';
 
 export interface PerfInfo { fps: number; stepMs: number; steps: number; renderMs: number; latency?: number | null; net?: string }
 
@@ -261,9 +264,16 @@ export class Renderer {
     if (f.state === 'hitstun' || f.state === 'knockdown' || f.state === 'dizzy' || f.state === 'shieldbreak') expr = 'hurt';
     else if (f.state === 'attack' || f.charging) expr = 'fierce';
     else if ((this.t + f.slot * 53) % 220 < 7) expr = 'blink';
+    const illustrated = save.settings.fighterStyle === 'illustrated' && hasArt(f.char.id);
+    if (illustrated) {
+      const fl = f.flash > 4 ? 0.85 : f.charging && (this.t >> 2) % 2 ? 0.35 : f.state === 'dizzy' && (this.t >> 3) % 2 ? 0.3 : 0;
+      const al = intang ? ((this.t >> 2) % 2 ? 0.55 : 0.85) : 1;
+      drawSpriteFighter(ctx, f, x, y, this.t, fl, al);
+    }
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(sz * f.facing, sz);
+    if (illustrated) ctx.globalAlpha = 0;
     if (pose.rot) { ctx.translate(0, -50); ctx.rotate(pose.rot * f.facing); ctx.translate(0, 50); }
     if (pose.squash !== 1) ctx.scale(1 / pose.squash, pose.squash);
     if (intang) ctx.globalAlpha = (this.t >> 2) % 2 ? 0.55 : 0.85;
@@ -271,7 +281,7 @@ export class Renderer {
     if (f.flash > 4) tint = '#ffffff';
     else if (f.charging && (this.t >> 2) % 2) tint = '#fff3a0';
     else if (f.state === 'dizzy') tint = (this.t >> 3) % 2 ? '#ffd0f0' : null;
-    drawRig(ctx, f.char, pose, tint, '#0b0b14', this.t, { vx: (f.vx + f.kvx) * f.facing, vy: f.vy + f.kvy, grounded: f.grounded }, expr);
+    if (!illustrated) drawRig(ctx, f.char, pose, tint, '#0b0b14', this.t, { vx: (f.vx + f.kvx) * f.facing, vy: f.vy + f.kvy, grounded: f.grounded }, expr);
     ctx.restore();
     ctx.globalAlpha = 1;
     // shield bubble
@@ -446,8 +456,12 @@ export class Renderer {
       ctx.fillStyle = 'rgba(10,10,24,0.85)'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
       ctx.lineWidth = 4 * u; ctx.strokeStyle = col; ctx.stroke();
       ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, r - 2 * u, 0, Math.PI * 2); ctx.clip();
-      ctx.translate(cx, cy + r * 0.62); const k = (r * 1.6) / 100; ctx.scale(k * f.facing, k);
-      drawRig(ctx, f.char, computePose(f, this.t), null, '#0b0b14', this.t, { vx: f.vx * f.facing, vy: f.vy, grounded: f.grounded });
+      const head = getArt(f.char.id)?.head;
+      if (head) { drawArt(ctx, head, cx, cy + r * 0.85, r * 1.75); }
+      else {
+        ctx.translate(cx, cy + r * 0.62); const k = (r * 1.6) / 100; ctx.scale(k * f.facing, k);
+        drawRig(ctx, f.char, computePose(f, this.t), null, '#0b0b14', this.t, { vx: f.vx * f.facing, vy: f.vy, grounded: f.grounded });
+      }
       ctx.restore();
     }
   }

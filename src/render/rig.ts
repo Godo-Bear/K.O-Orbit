@@ -1,5 +1,6 @@
 import type { Fighter } from '../sim/fighter';
 import type { CharDef, MoveDef } from '../sim/types';
+import { getArt, drawArt } from './art';
 
 /** Procedural skeletal pose: angles measured from straight-down, + = toward facing. */
 interface Pose {
@@ -819,6 +820,12 @@ export function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w
 
 /** Draw a character's head & shoulders as a portrait. (x = center, y = top, size = framing width) */
 export function drawPortrait(ctx: CanvasRenderingContext2D, c: CharDef, x: number, y: number, size: number, t = 0) {
+  const head = getArt(c.id)?.head;
+  if (head) { // illustrated expression-sheet head, fitted to the frame
+    const h = size * 0.78;
+    drawArt(ctx, head, x, y + h * 1.02, h);
+    return;
+  }
   ctx.save();
   const s = size / 80;
   ctx.translate(x, y + 114 * s);
@@ -862,6 +869,12 @@ export function drawHeroCard(ctx: CanvasRenderingContext2D, c: CharDef, w: numbe
     const fg = ctx.createRadialGradient(w / 2, h * 0.93, 1, w / 2, h * 0.93, w * 0.45);
     fg.addColorStop(0, 'rgba(255,255,255,0.35)'); fg.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = fg; ctx.fillRect(0, h * 0.75, w, h * 0.25);
+  }
+  const full = getArt(c.id)?.full;
+  if (full) { // the fighter's own key art
+    const ah = Math.min(h * 0.9, (w * 0.95) * (full.h / full.w));
+    drawArt(ctx, full, w / 2, h * 0.96, ah);
+    return;
   }
   const s = (h * 0.8) / (128 * Math.max(1, c.stats.size * 0.95));
   ctx.save();

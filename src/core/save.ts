@@ -11,10 +11,11 @@ export interface KeyScheme { keys: Record<Action, string[]>; tapJump: boolean }
 export interface PadScheme { buttons: Partial<Record<Action, number[]>>; tapJump: boolean; deadzone: number }
 
 export interface Settings {
-  master: number; sfx: number; muted: boolean;
+  master: number; sfx: number; music: number; muted: boolean;
   showPerf: boolean; screenShake: boolean; renderScale: number;
   onlineServer: string; playerName: string; inputDelay: number;
-  intensity: number; // visual intensity: 2 full, 1 reduced, 0 minimal (flashes, shake, particles)
+  intensity: number;
+  fighterStyle: 'illustrated' | 'rig'; // illustrated = your character art; rig = animated vector rig // visual intensity: 2 full, 1 reduced, 0 minimal (flashes, shake, particles)
 }
 
 export interface StoryProgress { cleared: Record<string, number> } // stageId -> best stars (1..3)
@@ -58,8 +59,9 @@ function defaults(): SaveData {
   return {
     version: 1,
     settings: {
-      master: 0.7, sfx: 0.9, muted: false, showPerf: false, screenShake: true, renderScale: 1,
+      master: 0.7, sfx: 0.9, music: 0.55, muted: false, showPerf: false, screenShake: true, renderScale: 1,
       onlineServer: '', playerName: 'Player', inputDelay: 2,
+      fighterStyle: 'illustrated',
       intensity: typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 2,
     },
     story: { cleared: {} },

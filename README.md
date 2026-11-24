@@ -89,7 +89,7 @@ Every stage has its own procedurally composed theme. There are also menu and vic
 |---|---|---|
 | Nova, The Star Pilot | Fishbowl helmet with starfield glass and a gold star, royal-blue suit, white gloves and boots, jetpack | All-rounder: plasma shot, comet dash |
 | Granite, The Walking Quarry | 7-ft rock golem, magma cracks, glowing eyes, giant stone fists | Heavyweight: armored charge, quake stomp |
-| Zephyr, The Drifting Gale | Mint bodysuit, winged teal helmet, platinum hair, long pink scarf (illustrated puppet) | Fast, 4 jumps: wind shuriken, counter |
+| Zephyr, The Drifting Gale | Mint bodysuit, winged teal helmet, platinum hair, long pink scarf | Fast, 4 jumps: wind shuriken, counter |
 | Volt, The Live Wire | Spiky gold hair, sky-blue goggles, gold armor, crackling sparks | Zoner: ball lightning, arc lash, reflector |
 | Ember, The Hearth Brawler *(unlock)* | Ember skin, flame hair, flaming fists, gold "hearth core" belt | Rushdown: fireballs, flame wheel |
 | Glacia, The Frost Sovereign *(unlock)* | Tall crystal crown, waist-length ice-white hair, crystal armor and skirt, snowflake cape | Control: freezing lances, crystal shield |

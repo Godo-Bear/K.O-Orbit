@@ -15,9 +15,9 @@ export const ART_FRAMING: Record<string, { height: number; headH: number; headY:
   glacia: { height: 1.2, headH: 44, headY: 0.92, faces: 1 },
   rook: { height: 1.18, headH: 42, headY: 0.92, faces: 1 },
   omega: { height: 1.12, headH: 40, headY: 0.94, faces: 1 },
-  volt: { height: 1.15, headH: 40, headY: 0.9, faces: 1 },
-  brick: { height: 1.08, headH: 34, headY: 0.92, faces: 1 },
-  ember: { height: 1.18, headH: 42, headY: 0.9, faces: 1 },
+  volt: { height: 1.16, headH: 40, headY: 0.9, faces: 1 },
+  brick: { height: 1.02, headH: 34, headY: 0.92, faces: 1 },
+  ember: { height: 1.12, headH: 42, headY: 0.9, faces: 1 },
   zephyr: { height: 1.14, headH: 38, headY: 0.92, faces: 1 },
 };
 

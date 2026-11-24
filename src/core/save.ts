@@ -7,7 +7,7 @@ export const ACTION_LABELS: Record<Action, string> = {
   special: 'Special', shield: 'Shield / Dodge', smash: 'Smash Attack', pause: 'Pause',
 };
 
-export interface KeyScheme { keys: Record<Action, string[]>; tapJump: boolean }
+export interface KeyScheme { keys: Record<Action, string[]>; tapJump: boolean; quickSmash?: boolean }
 export interface PadScheme { buttons: Partial<Record<Action, number[]>>; tapJump: boolean; deadzone: number }
 
 export interface Settings {
@@ -15,7 +15,9 @@ export interface Settings {
   showPerf: boolean; screenShake: boolean; renderScale: number;
   onlineServer: string; playerName: string; inputDelay: number;
   intensity: number;
-  fighterStyle: 'illustrated' | 'rig'; // illustrated = your character art; rig = animated vector rig // visual intensity: 2 full, 1 reduced, 0 minimal (flashes, shake, particles)
+  fighterStyle: 'illustrated' | 'rig';
+  touch: 'auto' | 'on' | 'off'; // on-screen touch controls
+  difficulty: number; // 0 easy, 1 normal, 2 hard, 3 expert (Story Mode) // illustrated = your character art; rig = animated vector rig // visual intensity: 2 full, 1 reduced, 0 minimal (flashes, shake, particles)
 }
 
 export interface StoryProgress { cleared: Record<string, number> } // stageId -> best stars (1..3)
@@ -61,7 +63,7 @@ function defaults(): SaveData {
     settings: {
       master: 0.7, sfx: 0.9, music: 0.55, muted: false, showPerf: false, screenShake: true, renderScale: 1,
       onlineServer: '', playerName: 'Player', inputDelay: 2,
-      fighterStyle: 'illustrated',
+      fighterStyle: 'illustrated', touch: 'auto', difficulty: 1,
       intensity: typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 2,
     },
     story: { cleared: {} },
@@ -93,7 +95,7 @@ function load(): SaveData {
       story: { cleared: { ...(p.story?.cleared || {}) } },
       unlocked: Array.isArray(p.unlocked) ? p.unlocked : [],
       kb: Array.isArray(p.kb) && p.kb.length === 2
-        ? p.kb.map((s: KeyScheme, i: number) => ({ tapJump: s.tapJump ?? true, keys: { ...d.kb[i].keys, ...(s.keys || {}) } }))
+        ? p.kb.map((s: KeyScheme, i: number) => ({ tapJump: s.tapJump ?? true, quickSmash: s.quickSmash ?? false, keys: { ...d.kb[i].keys, ...(s.keys || {}) } }))
         : d.kb,
       pad: { ...d.pad, ...(p.pad || {}), buttons: { ...d.pad.buttons, ...(p.pad?.buttons || {}) } },
     };

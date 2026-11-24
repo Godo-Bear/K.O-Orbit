@@ -87,6 +87,7 @@ export function versusScreen(app: App): HTMLElement {
         : cycler('Stocks', [1, 2, 3, 4, 5, 7, 10, 99].map((n) => ({ v: n, label: String(n) })), state.stocks, (v) => { state.stocks = v; }),
       state.mode === 'stamina' ? cycler('HP', [100, 150, 200, 300].map((n) => ({ v: n, label: String(n) })), state.hp, (v) => { state.hp = v; }) : null,
       toggle('Teams', state.teams, (v) => { state.teams = v; renderSlots(); }),
+      cycler('All CPUs', [{ v: 0, label: '—' }, ...Array.from({ length: 9 }, (_, k) => ({ v: k + 1, label: `Lv ${k + 1}` }))], 0, (v) => { if (!v) return; state.slots.forEach((s) => { s.cpuLevel = v; }); renderSlots(); }),
       btn('Fill CPUs', () => { const open = CHARACTERS.filter((c) => isCharUnlocked(c.id)); state.slots.forEach((s, i) => { if (s.type === 'OFF') { s.type = 'CPU'; s.charId = open[i % open.length].id; s.cpuLevel = 3 + (i % 5); } }); renderSlots(); }, 'small'),
       btn('Clear', () => { state.slots.forEach((s, i) => { if (i > 0) s.type = 'OFF'; }); renderSlots(); }, 'small'),
       countEl,

@@ -3,6 +3,8 @@ import { input } from '../core/input';
 import { synth } from '../audio/synth';
 import { music } from '../audio/music';
 import { unlockAll } from '../story/campaign';
+import { DIFFICULTIES } from './story';
+import { DEVICE_IDS, deviceLabel } from '../core/input';
 import { el, btn, cycler, slider, toggle, toast, mount } from './dom';
 import type { App } from './app';
 
@@ -19,6 +21,10 @@ export function settingsScreen(app: App, back: () => void): HTMLElement {
   return el('div', { class: 'panel-screen settings' },
     el('div', { class: 'screen-head' }, btn('◀ Back', back, 'small ghost'), el('h1', {}, 'SETTINGS'), el('span', {})),
     el('div', { class: 'settings-grid' },
+      el('h3', {}, 'Gameplay'),
+      cycler('Story difficulty', DIFFICULTIES.map((x) => ({ v: x.v, label: x.label })), s.difficulty, (v) => set(() => { s.difficulty = v; })),
+      el('p', { class: 'muted small' }, 'Easy: weaker CPUs and an extra life. Hard / Expert: smarter, tougher opponents (Expert also removes a life). Versus CPU levels are set per slot or with "All CPUs".'),
+      cycler('Touch controls', [{ v: 'auto', label: 'Auto (phones & tablets)' }, { v: 'on', label: 'Always on' }, { v: 'off', label: 'Off' }], s.touch, (v) => set(() => { s.touch = v; })),
       el('h3', {}, 'Audio'),
       slider('Master volume', s.master, 0, 1, 0.05, (v) => set(() => { s.master = v; })),
       slider('Effects volume', s.sfx, 0, 1, 0.05, (v) => set(() => { s.sfx = v; })),
@@ -137,12 +143,30 @@ export function controlsScreen(app: App, back: () => void): HTMLElement {
         btn('Clear', () => { sch.keys[a] = []; persist(); render(); }, 'small ghost'),
       ))),
       toggle('Tap-jump (Up jumps)', sch.tapJump, (v) => { sch.tapJump = v; persist(); }),
+      toggle('Quick smash (tap direction + Attack)', !!sch.quickSmash, (v) => { sch.quickSmash = v; persist(); }),
+      el('p', { class: 'muted small' }, 'Quick smash: press a direction and Attack together (within 4 frames) for a smash attack — like flicking a stick. Hold the direction first for a tilt.'),
     );
   };
   renderTabs(); render();
-  void app;
+  // live input tester: shows what every device is pressing right now
+  const tester = el('div', { class: 'input-tester' });
+  const names: [keyof import('../core/inputFrame').InputFrame, string][] = [['jump', 'Jump'], ['attack', 'Attack'], ['special', 'Special'], ['shield', 'Shield'], ['smash', 'Smash']];
+  const arrow = (x: number, y: number) => (Math.abs(x) < 0.2 && Math.abs(y) < 0.2 ? '·' : ['→', '↘', '↓', '↙', '←', '↖', '↑', '↗'][Math.round(((Math.atan2(y, x) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI / 4)) % 8]);
+  let tick = 0;
+  const off = app.onStep(() => {
+    if (!tester.isConnected) { off(); return; }
+    if (++tick % 3) return;
+    const pads = input.connectedPads().map((i) => `pad${i}`);
+    const rows = DEVICE_IDS.filter((d) => d.startsWith('kb') || pads.includes(d)).map((d) => {
+      const f = input.get(d);
+      const held = names.filter(([k]) => f[k]).map(([, n]) => n);
+      const active = held.length || Math.abs(f.x) > 0.2 || Math.abs(f.y) > 0.2;
+      return `<div class="it-row ${active ? 'on' : ''}"><b>${deviceLabel(d)}</b><span class="it-dir">${arrow(f.x, f.y)}</span><span>${held.join(' · ') || '—'}</span></div>`;
+    });
+    tester.innerHTML = `<div class="it-title">Input test — press anything</div>${rows.join('')}`;
+  });
   return el('div', { class: 'panel-screen controls' },
     el('div', { class: 'screen-head' }, btn('◀ Back', () => { cancelCapture(); back(); }, 'small ghost'), el('h1', {}, 'CONTROLS'),
       btn('Reset Defaults', () => { cancelCapture(); resetControls(); toast('Controls reset to defaults'); render(); }, 'small')),
-    tabs, body);
+    tabs, tester, body);
 }

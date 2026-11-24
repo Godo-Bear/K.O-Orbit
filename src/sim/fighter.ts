@@ -49,13 +49,14 @@ export class Fighter {
   eliminatedAt = -1; score = 0;
   input: InputFrame = emptyInput();
   /** Input buffer: presses made during lag are replayed for a few frames once actionable. */
-  private buf = { atk: 0, spc: 0, jmp: 0, smh: 0, sx: 0, sy: 0 };
+  private buf = { atk: 0, spc: 0, jmp: 0, smh: 0, shd: 0, sx: 0, sy: 0 };
   scale: number;
   armorAll: boolean;
   shake = 0; // visual shake during hitlag
   flash = 0; // visual hit flash
   hitThisFrame = false;
-  tractionMul = 1; // stage ground friction multiplier
+  tractionMul = 1;
+  coyote = 0; // frames left to still ground-jump after walking off a ledge // stage ground friction multiplier
   djAge = 999; // frames since last double jump (animation)
   name: string;
   team: number;
@@ -125,6 +126,7 @@ export class Fighter {
     if (this.hitlag > 0) { this.hitlag--; this.shake = this.hitlag > 0 ? this.shake : 0; return; }
     this.shake = 0;
     if (this.djAge < 999) this.djAge++;
+    if (this.coyote > 0) this.coyote--;
     if (this.invuln > 0) this.invuln--;
     if (this.ledgeCooldown > 0) this.ledgeCooldown--;
     if (this.dropThrough > 0) this.dropThrough--;
@@ -133,15 +135,15 @@ export class Fighter {
     this.prevX = this.x; this.prevY = this.y;
     const b = this.buf, BUF = 6;
     let use = inp;
-    if (inp.attackP) b.atk = BUF; if (inp.specialP) b.spc = BUF; if (inp.jumpP) b.jmp = BUF;
+    if (inp.attackP) b.atk = BUF; if (inp.specialP) b.spc = BUF; if (inp.jumpP) b.jmp = BUF; if (inp.shieldP) b.shd = BUF;
     if (inp.smashP) { b.smh = BUF; b.sx = inp.sx; b.sy = inp.sy; }
-    if ((b.atk || b.spc || b.jmp || b.smh) && !(inp.attackP || inp.specialP || inp.jumpP || inp.smashP)) {
-      use = { ...inp, attackP: b.atk > 0, specialP: b.spc > 0, jumpP: b.jmp > 0, smashP: b.smh > 0, sx: b.sx, sy: b.sy };
+    if ((b.atk || b.spc || b.jmp || b.smh || b.shd) && !(inp.attackP || inp.specialP || inp.jumpP || inp.smashP || inp.shieldP)) {
+      use = { ...inp, attackP: b.atk > 0, specialP: b.spc > 0, jumpP: b.jmp > 0, smashP: b.smh > 0, shieldP: b.shd > 0 && inp.shield !== false, sx: b.sx, sy: b.sy };
     }
     const st0 = this.state, mv0 = this.move, j0 = this.jumpsLeft, sf0 = this.stateFrame;
     this.think(use, w);
-    if (this.state !== st0 || this.move !== mv0 || this.jumpsLeft !== j0 || this.stateFrame < sf0) { b.atk = b.spc = b.jmp = b.smh = 0; }
-    else { if (b.atk) b.atk--; if (b.spc) b.spc--; if (b.jmp) b.jmp--; if (b.smh) b.smh--; }
+    if (this.state !== st0 || this.move !== mv0 || this.jumpsLeft !== j0 || this.stateFrame < sf0) { b.atk = b.spc = b.jmp = b.smh = b.shd = 0; }
+    else { if (b.atk) b.atk--; if (b.spc) b.spc--; if (b.jmp) b.jmp--; if (b.smh) b.smh--; if (b.shd) b.shd--; }
     if ((this.state as FState) === 'dead') return;
     this.physics(inp, w);
   }
@@ -224,6 +226,11 @@ export class Fighter {
         }
         return;
       case 'air':
+        if (this.coyote > 0 && i.jumpP) { // coyote time: a late ground jump still counts
+          this.coyote = 0; this.vy = -(i.jump ? st.jump : st.shortHop); this.fastFall = false;
+          w.emit({ type: 'jump', x: this.x, y: this.y, slot: this.slot });
+          return;
+        }
         if (this.airActions(i, w)) return;
         this.airDrift(i);
         return;
@@ -543,7 +550,7 @@ export class Fighter {
       else if (nx < p.x1 || nx > p.x2) {
         if (this.canWalkOff()) {
           this.ground = null;
-          if (this.state === 'walk' || this.state === 'run' || this.state === 'dash' || this.state === 'skid' || this.state === 'idle' || this.state === 'crouch') this.setState('air');
+          if (this.state === 'walk' || this.state === 'run' || this.state === 'dash' || this.state === 'skid' || this.state === 'idle' || this.state === 'crouch') { this.setState('air'); this.coyote = 6; }
           if (this.state === 'attack' && this.move && !this.move.air) { /* keep move, now airborne */ }
           this.jumpsLeft = Math.max(this.jumpsLeft, 0);
         } else {

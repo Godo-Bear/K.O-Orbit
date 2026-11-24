@@ -1,4 +1,4 @@
-import { save } from '../core/save';
+import { save, persist } from '../core/save';
 import { DEVICE_IDS, deviceLabel, input } from '../core/input';
 import { CHARACTERS, charById } from '../sim/characters';
 import { stageById } from '../sim/stages';
@@ -12,14 +12,23 @@ import type { App } from './app';
 
 const pick = { charId: 'nova', device: 'kb1', selected: 0 };
 
+export const DIFFICULTIES = [
+  { v: 0, label: 'Easy', lvl: -2, stocks: 1, hp: 0.8 },
+  { v: 1, label: 'Normal', lvl: 0, stocks: 0, hp: 1 },
+  { v: 2, label: 'Hard', lvl: 2, stocks: 0, hp: 1.15 },
+  { v: 3, label: 'Expert', lvl: 4, stocks: -1, hp: 1.3 },
+];
+
 export function buildStoryMatch(st: StoryStage, charId: string, device: string) {
   const teamed = st.enemies.some((e) => e.team !== undefined);
+  const d = DIFFICULTIES[save.settings.difficulty] ?? DIFFICULTIES[1];
   const slots: SlotConfig[] = [{
     slot: 0, type: 'HUMAN', charId, cpuLevel: 1, device, team: teamed ? 0 : -1,
-    stocks: st.playerStocks, hp: st.playerHp, name: 'You',
+    stocks: st.rules.mode === 'time' ? undefined : Math.max(1, (st.playerStocks ?? st.rules.stocks) + d.stocks), hp: st.playerHp, name: 'You',
   }];
   st.enemies.forEach((e, i) => slots.push({
-    slot: i + 1, type: 'CPU', charId: e.charId, cpuLevel: e.level, team: e.team ?? -1, scale: e.scale, armor: e.armor, stocks: e.stocks, hp: e.hp,
+    slot: i + 1, type: 'CPU', charId: e.charId, cpuLevel: Math.max(1, Math.min(9, e.level + d.lvl)), team: e.team ?? -1, scale: e.scale, armor: e.armor, stocks: e.stocks,
+    hp: Math.round((e.hp ?? st.rules.hp) * d.hp),
   }));
   return { rules: { ...st.rules }, slots, story: st, seed: Math.floor(Math.random() * 1e6) };
 }
@@ -65,12 +74,13 @@ export function storyMapScreen(app: App): HTMLElement {
         el('div', { class: 'enemies' }, st.enemies.map((e) => el('div', { class: 'enemy' },
           portraitCanvas(54, (c, s) => drawPortrait(c, charById(e.charId), s / 2, s * 0.05, s * 1.2)),
           el('span', {}, `${charById(e.charId).name}${e.scale && e.scale > 1.3 ? ' (Giant)' : ''}`),
-          el('span', { class: 'muted' }, `Lv ${e.level}`))))),
+          el('span', { class: 'muted' }, `Lv ${Math.max(1, Math.min(9, e.level + (DIFFICULTIES[save.settings.difficulty] ?? DIFFICULTIES[1]).lvl))}`))))),
       el('div', { class: 'muted small' }, `★★ take ≤ ${st.stars.damage} damage · ★★★ clear within ${st.stars.time}s`),
       st.reward ? el('div', { class: 'reward' }, '🔓 Reward: ', el('b', {}, isCharUnlocked(st.reward) ? `${charById(st.reward).name} (unlocked)` : `Unlock ${charById(st.reward).name}`)) : null,
       el('div', { class: 'brief-pick' },
         el('div', { class: 'pick-portrait' }, portraitCanvas(96, (c, wd, ht) => drawHeroCard(c, charById(pick.charId), wd, ht), 110)),
         el('div', { class: 'pick-cycs' },
+          cycler('Difficulty', DIFFICULTIES.map((x) => ({ v: x.v, label: x.label })), save.settings.difficulty, (v) => { save.settings.difficulty = v; persist(); renderBrief(); }),
           cycler('Fighter', CHARACTERS.map((c) => ({ v: c.id, label: isCharUnlocked(c.id) ? c.name : `🔒 ${c.name}`, disabled: !isCharUnlocked(c.id) })), pick.charId, (v) => { pick.charId = v; renderBrief(); }),
           cycler('Ctrl', DEVICE_IDS.map((d) => ({ v: d, label: deviceLabel(d) })), pick.device, (v) => { pick.device = v; }))),
       btn('START STAGE ▶', () => app.startMatch('local', buildStoryMatch(st, pick.charId, pick.device), () => app.story()), 'primary big', { 'data-autofocus': '' }),

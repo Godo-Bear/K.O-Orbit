@@ -170,9 +170,10 @@ function lobbyScreen(app: App, net: NetClient): HTMLElement {
           : cycler('Stocks', [1, 2, 3, 4, 5].map((n) => ({ v: n, label: String(n) })), lobby.stocks, (v) => { lobby.stocks = v; hostBroadcast(); }),
         cycler('Stage', STAGES.map((s) => ({ v: s.id, label: s.name })), lobby.stageId, (v) => { lobby.stageId = v; hostBroadcast(); }),
         cycler('Input delay', [0, 1, 2, 3, 4, 6].map((n) => ({ v: n, label: `${n}f` })), save.settings.inputDelay, (v) => { save.settings.inputDelay = v; persist(); }),
+        cycler('CPU Lvl', Array.from({ length: 9 }, (_, k) => ({ v: k + 1, label: String(k + 1) })), lobby.players.find((p) => p.cpu)?.level ?? 5, (v) => { lobby.players.forEach((p) => { if (p.cpu) p.level = v; }); hostBroadcast(); }),
         btn('+ Add CPU', () => {
           if (lobby.players.length >= MAX_PLAYERS) { toast(`Room is full (${MAX_PLAYERS} max)`); return; }
-          lobby.players.push({ peerId: -1000 - lobby.players.length, name: 'CPU', charId: CHARACTERS[lobby.players.length % 4].id, cpu: true, level: 5 });
+          lobby.players.push({ peerId: -1000 - lobby.players.length, name: 'CPU', charId: CHARACTERS[lobby.players.length % 4].id, cpu: true, level: lobby.players.find((p) => p.cpu)?.level ?? 5 });
           hostBroadcast();
         }, 'small'),
         btn('START MATCH ▶', startMatch, 'primary big', { 'data-autofocus': '' }),

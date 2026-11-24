@@ -19,6 +19,7 @@ import { onlineMenuScreen } from './online';
 import { settingsScreen, controlsScreen, controlsGuide } from './options';
 import { practiceScreen, DUMMY_MODES, DUMMY_PCTS } from './practice';
 import { heroLineup } from './keyart';
+import { TouchControls } from './touch';
 
 export class App {
   renderer: Renderer;
@@ -31,6 +32,7 @@ export class App {
   lastMatch: { kind: SessionKind; cfg: MatchConfig; back: () => void } | null = null;
   private pauseEl: HTMLElement | null = null;
   private stepHooks: (() => void)[] = [];
+  touch = new TouchControls();
 
   constructor() {
     const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -69,6 +71,7 @@ export class App {
       if (this.demo.world.phase === 'over') this.startDemo();
     }
     if (!this.session || this.session.paused || this.pauseEl) nav.pollPads();
+    this.touch.show(!!this.session && !this.pauseEl && !this.session.paused && !this.session.ended);
     for (const h of this.stepHooks) h();
   }
 

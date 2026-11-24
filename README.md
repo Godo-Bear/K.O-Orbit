@@ -123,6 +123,12 @@ Every stage has its own procedurally composed theme. There are also menu and vic
 | Smash | I / Scroll Down | Num5 / M | Right stick, or flick + A |
 | Pause | Esc | Backspace | Start |
 
+**Touch controls:** phones and tablets get an on-screen floating stick plus Attack, Special, Jump, Shield, Smash and Pause buttons. They control P1 (Settings → Touch controls: Auto / On / Off).
+
+**Feel:** inputs are buffered for 6 frames (attack, special, jump, smash, shield), with a 6-frame coyote-time jump after walking off a ledge. The optional **Quick smash** (per keyboard scheme) turns a direction tap plus Attack into a smash attack. The Controls screen has a live input tester for every keyboard and gamepad.
+
+**Difficulty:** Story Mode has Easy / Normal / Hard / Expert, set in Settings or the story briefing. Easy lowers enemy CPU levels by 2 and gives an extra life. Hard raises them by 2. Expert raises them by 4, removes a life and gives stamina bosses 30% more HP. Versus has an "All CPUs" level setter, and the online lobby has a CPU level for added CPUs.
+
 Any action can be bound to a key, a mouse button (left, right, middle, back, forward) or a scroll direction. During a match, the mouse and wheel act as game controls and the right-click menu is suppressed; in menus they behave normally. Key taps shorter than one frame are latched, so quick presses always register.
 
 Up to 10 local players: two keyboard schemes plus any number of gamepads. In Versus, press **Start** on a gamepad to join. Menus work with the mouse, the keyboard (arrows, Enter, Esc) and gamepads (D-pad, A, B).

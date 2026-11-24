@@ -17,6 +17,8 @@ class InputManager {
   private lastCapture = 0;
   /** Set by the app: true while a match is running (mouse/scroll then act as game input, not page input). */
   inMatch: () => boolean = () => false;
+  /** On-screen touch controls (feed into Keys 1 / P1). */
+  touch = { x: 0, y: 0, jump: false, attack: false, special: false, shield: false, smash: false, pause: false };
   private devs = new Map<DeviceId, DevState>();
   private frames = new Map<DeviceId, InputFrame>();
   /** When set, the next key/button press is delivered here (for rebinding) and swallowed. */
@@ -125,8 +127,22 @@ class InputManager {
       f.x = (k('right') ? 1 : 0) - (k('left') ? 1 : 0);
       f.y = (k('down') ? 1 : 0) - (k('up') ? 1 : 0);
       f.jump = k('jump'); f.attack = k('attack'); f.special = k('special'); f.shield = k('shield'); f.smash = k('smash');
-      f.pauseP = k('pause') && !s.prev.pauseP && !(s as any).pauseHeld;
-      (s as any).pauseHeld = k('pause');
+      let pauseHeld = k('pause');
+      if (id === 'kb1') { // merge touch controls
+        const t = this.touch;
+        if (Math.abs(t.x) > Math.abs(f.x)) f.x = t.x;
+        if (Math.abs(t.y) > Math.abs(f.y)) f.y = t.y;
+        f.jump ||= t.jump; f.attack ||= t.attack; f.special ||= t.special; f.shield ||= t.shield; f.smash ||= t.smash;
+        pauseHeld ||= t.pause;
+        if (Math.abs(t.x) > 0 || Math.abs(t.y) > 0) isPad = true; // analog stick: allow walking & flick-smash
+      }
+      f.pauseP = pauseHeld && !(s as any).pauseHeld;
+      (s as any).pauseHeld = pauseHeld;
+      // quick smash: tapping a direction then Attack within 4 ticks = smash attack (keyboard "flick")
+      const da = (s as any).dirAge ?? 99;
+      const pressedDir = (f.x !== 0 && f.x !== s.prev.x) || (f.y !== 0 && f.y !== s.prev.y);
+      (s as any).dirAge = pressedDir ? 0 : da + 1;
+      (s as any).quick = !!sch.quickSmash && (f.x !== 0 || f.y !== 0) && ((s as any).dirAge <= 4);
     } else {
       isPad = true;
       const g = pads[+id.slice(3)];
@@ -148,10 +164,11 @@ class InputManager {
       }
     }
     const p = s.prev;
-    f.jumpP = f.jump && !p.jump; f.attackP = f.attack && !p.attack; f.specialP = f.special && !p.special;
+    f.jumpP = f.jump && !p.jump;
+    if ((s as any).quick && f.attack && !p.attack) { f.smash = true; f.smashP = true; (s as any).quickFired = true; } f.attackP = f.attack && !p.attack; f.specialP = f.special && !p.special;
     f.shieldP = f.shield && !p.shield;
-    f.smashP = f.smash && !p.smash;
-    if (f.smashP) { f.sx = f.x; f.sy = f.y; }
+    f.smashP = f.smashP || (f.smash && !p.smash);
+    if (f.smashP) { f.sx = f.x; f.sy = f.y; if ((s as any).quickFired) { f.attackP = false; (s as any).quickFired = false; } }
 
     // flick / tap detection
     const hist = s.hist, histY = s.histY;

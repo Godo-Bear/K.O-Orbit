@@ -23,6 +23,11 @@ export const ART_FRAMING: Record<string, { height: number; headH: number; headY:
 
 const art = new Map<string, CharArt>();
 
+/** Smoothing for runtime art draws. Mip levels are pre-built with high quality, so in-game bilinear is enough
+ *  (and avoids Chrome's slow per-draw high-quality resampling path). Menus/cards set 'high'. */
+let quality: ImageSmoothingQuality = 'high';
+export function setArtQuality(q: ImageSmoothingQuality) { quality = q; }
+
 function makeCanvas(w: number, h: number) { const c = document.createElement('canvas'); c.width = Math.max(1, w); c.height = Math.max(1, h); return c; }
 
 function build(img: HTMLImageElement): ArtImage {
@@ -99,6 +104,7 @@ export function drawArtRect(ctx: CanvasRenderingContext2D, a: ArtImage, x: numbe
   const m = ctx.getTransform();
   const scale = Math.hypot(m.a, m.b) || 1;
   const src = pickLevel(a, h * scale);
+  ctx.imageSmoothingQuality = quality;
   ctx.drawImage(src, x, y, w, h);
   if (flash > 0) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * Math.min(1, flash); ctx.drawImage(a.flash, x, y, w, h); ctx.globalAlpha = ga; }
 }
@@ -108,7 +114,7 @@ export function drawArt(ctx: CanvasRenderingContext2D, a: ArtImage, x: number, y
   const scale = Math.hypot(m.a, m.b) || 1;
   const w = (a.w / a.h) * h;
   const src = pickLevel(a, h * scale * Math.abs(Math.hypot(m.c, m.d) / scale || 1));
-  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = quality;
   if (ink) drawInkRect(ctx, a, x - w / 2, y - h * anchorY, w, h);
   ctx.drawImage(src, x - w / 2, y - h * anchorY, w, h);
   if (flash > 0) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * Math.min(1, flash); ctx.drawImage(a.flash, x - w / 2, y - h * anchorY, w, h); ctx.globalAlpha = ga; }

@@ -49,8 +49,25 @@ export class Background {
   }
 
   /** Background (far cached group + live mid layer). */
+  private farCv: HTMLCanvasElement | null = null;
+  private farCtx: CanvasRenderingContext2D | null = null;
+
   draw(ctx: CanvasRenderingContext2D, W: number, H: number, cx: number, cy: number, zoom: number, t: number) {
-    if (this.dbg.far) this.drawFar(ctx, W, H, cx, cy, zoom, t);
+    if (this.dbg.far) {
+      if (W * H > 2_600_000) {
+        // high-res screens: the soft, slow-moving far layers are painted at half resolution into an opaque
+        // buffer and stretched with one fast opaque copy (≈4× cheaper than painting them at 4K)
+        const fw = Math.round(W / 2), fh = Math.round(H / 2);
+        if (!this.farCv || this.farCv.width !== fw || this.farCv.height !== fh) {
+          this.farCv = document.createElement('canvas'); this.farCv.width = fw; this.farCv.height = fh;
+          this.farCtx = this.farCv.getContext('2d', { alpha: false });
+        }
+        this.drawFar(this.farCtx!, fw, fh, cx, cy, zoom * (fw / W), t);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'low';
+        ctx.drawImage(this.farCv, 0, 0, W, H);
+      } else this.drawFar(ctx, W, H, cx, cy, zoom, t);
+    }
     if (this.dbg.mid) this.drawMid(ctx, W, H, cx, cy, zoom, t);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }

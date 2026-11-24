@@ -12,7 +12,7 @@ export interface PadScheme { buttons: Partial<Record<Action, number[]>>; tapJump
 
 export interface Settings {
   master: number; sfx: number; music: number; muted: boolean;
-  showPerf: boolean; screenShake: boolean; renderScale: number;
+  showPerf: boolean; screenShake: boolean; renderScale: number; // 0 = auto (adaptive, up to 4K)
   onlineServer: string; playerName: string; inputDelay: number;
   intensity: number;
   fighterStyle: 'illustrated' | 'rig';
@@ -59,9 +59,9 @@ const KEY = 'ko-orbit-save-v1';
 
 function defaults(): SaveData {
   return {
-    version: 2,
+    version: 3,
     settings: {
-      master: 0.7, sfx: 0.9, music: 0.55, muted: false, showPerf: false, screenShake: true, renderScale: 1,
+      master: 0.7, sfx: 0.9, music: 0.55, muted: false, showPerf: false, screenShake: true, renderScale: 0,
       onlineServer: '', playerName: 'Player', inputDelay: 2,
       fighterStyle: 'illustrated', touch: 'auto', difficulty: 1,
       intensity: typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 2,
@@ -100,7 +100,8 @@ function load(): SaveData {
       pad: { ...d.pad, ...(p.pad || {}), buttons: { ...d.pad.buttons, ...(p.pad?.buttons || {}) } },
     };
     if ((p.version ?? 1) < 2) migrateMouse(out);
-    out.version = 2;
+    if ((p.version ?? 1) < 3 && out.settings.renderScale === 1) out.settings.renderScale = 0; // old default -> auto
+    out.version = 3;
     return out;
   } catch {
     return d;

@@ -9,7 +9,7 @@ import { computePose, drawRig, drawPortrait, roundRect, type Expr } from './rig'
 import { drawStage } from './stagePaint';
 import { drawSpriteFighter } from './spriteFighter';
 import { springPose } from './poseSpring';
-import { getArt, drawArt, hasArt } from './art';
+import { getArt, drawArt, hasArt, setArtQuality } from './art';
 import { save } from '../core/save';
 
 export interface PerfInfo { fps: number; stepMs: number; steps: number; renderMs: number; latency?: number | null; net?: string }
@@ -52,11 +52,26 @@ export class Renderer {
     matchMedia?.('(resolution: 1dppx)')?.addEventListener?.('change', () => this.resize());
   }
 
+  /** 4K cap for automatic mode: 3840×2160 backing pixels (+5%). */
+  static readonly MAX_AUTO_PIXELS = 3840 * 2160 * 1.05;
+  /** 0 = automatic (adaptive); otherwise a fixed fraction of native resolution. */
+  mode = 0;
+  /** Current adaptive scale (auto mode), 0.5..1 of the 4K-capped native resolution. */
+  autoScale = 1;
+
   resize() {
     const r = this.canvas.getBoundingClientRect();
     this.cssW = Math.max(320, r.width || window.innerWidth);
     this.cssH = Math.max(200, r.height || window.innerHeight);
-    this.dpr = Math.min(3, window.devicePixelRatio || 1) * this.renderScale;
+    const native = Math.min(3, window.devicePixelRatio || 1);
+    let dpr: number;
+    if (this.mode === 0) {
+      // automatic: native sharpness, capped at 4K pixel count, scaled down adaptively only when needed
+      const capped = Math.min(native, Math.sqrt(Renderer.MAX_AUTO_PIXELS / (this.cssW * this.cssH)));
+      dpr = Math.max(0.5, capped * this.autoScale);
+    } else dpr = native * this.mode;
+    this.dpr = dpr;
+    this.renderScale = this.mode === 0 ? this.autoScale : this.mode;
     const W = Math.round(this.cssW * this.dpr), H = Math.round(this.cssH * this.dpr);
     if (W !== this.W || H !== this.H) {
       this.W = this.canvas.width = W;
@@ -64,7 +79,9 @@ export class Renderer {
     }
   }
 
-  setRenderScale(s: number) { this.renderScale = Math.max(0.5, Math.min(1, s)); this.resize(); }
+  /** s = 0 → automatic; otherwise fixed scale (0.5..1). */
+  setRenderScale(s: number) { this.mode = s === 0 ? 0 : Math.max(0.5, Math.min(1, s)); if (this.mode === 0) this.autoScale = 1; this.resize(); }
+  setAutoScale(s: number) { const v = Math.max(0.5, Math.min(1, s)); if (Math.abs(v - this.autoScale) < 0.01) return; this.autoScale = v; this.resize(); }
 
   resetCamera() { this.cam.init = false; this.effects.clear(); }
 
@@ -160,6 +177,7 @@ export class Renderer {
     const shakeMul = opts.screenShake === false ? 0 : this.intensity === 2 ? 1 : this.intensity === 1 ? 0.35 : 0;
     if (shakeMul > 0 && w.shakeMag > 0.3 && !opts.paused) { sx = (Math.random() - 0.5) * w.shakeMag * 2 * shakeMul; sy = (Math.random() - 0.5) * w.shakeMag * 2 * shakeMul; }
     const cx = this.cam.x + sx, cy = this.cam.y + sy;
+    setArtQuality('low');
     this.bg!.draw(ctx, this.W, this.H, cx, cy, z, this.t);
     // pixel-snapped world transform: geometry & ink outlines land on whole device pixels
     ctx.setTransform(z, 0, 0, z, Math.round(this.W / 2 - cx * z), Math.round(this.H / 2 - cy * z));
@@ -184,6 +202,7 @@ export class Renderer {
     this.drawOffscreen(w, alpha);
     if (!opts.hideHud) { this.drawHud(w, opts); this.drawBanner(w); }
     if (opts.perf) this.drawPerf(w, opts.perf);
+    setArtQuality('high');
     this.lastRenderMs = performance.now() - t0;
   }
 
@@ -606,7 +625,7 @@ export class Renderer {
       `FPS ${p.fps.toFixed(0)}  render ${p.renderMs.toFixed(2)}ms`,
       `sim step ${p.stepMs.toFixed(3)}ms  ×${p.steps}/frame @60Hz`,
       `entities: ${w.fighters.length} fighters · ${proj} proj · ${particles} fx`,
-      `canvas ${this.W}×${this.H} (dpr ${this.dpr.toFixed(2)})`,
+      `canvas ${this.W}×${this.H} (dpr ${this.dpr.toFixed(2)}) · ${this.mode === 0 ? `auto ${Math.round(this.autoScale * 100)}%` : `fixed ${Math.round(this.mode * 100)}%`}`,
     ];
     if (p.net) lines.push(p.net);
     if (p.latency != null) lines.push(`latency ${p.latency.toFixed(0)}ms RTT`);

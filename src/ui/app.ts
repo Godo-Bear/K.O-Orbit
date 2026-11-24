@@ -5,6 +5,7 @@ import { PLAYER_COLORS, playerLabel } from '../core/constants';
 import { synth } from '../audio/synth';
 import { music, stageTrack, TRACKS } from '../audio/music';
 import { Renderer } from '../render/renderer';
+import { AdaptiveResolution } from '../render/adaptive';
 import { drawPortrait, drawHeroCard } from '../render/rig';
 import { Session, type MatchConfig, type SessionKind } from '../game/session';
 import { CHARACTERS, charById } from '../sim/characters';
@@ -33,16 +34,18 @@ export class App {
   private pauseEl: HTMLElement | null = null;
   private stepHooks: (() => void)[] = [];
   touch = new TouchControls();
+  adaptive!: AdaptiveResolution;
 
   constructor() {
     const canvas = document.getElementById('game') as HTMLCanvasElement;
     this.ui = document.getElementById('ui')!;
     this.renderer = new Renderer(canvas);
     this.renderer.setRenderScale(save.settings.renderScale);
+    this.adaptive = new AdaptiveResolution(this.renderer);
     applyUiZoom();
     input.inMatch = () => !!this.session && !this.pauseEl && !this.session.paused;
     window.addEventListener('resize', applyUiZoom);
-    this.loop = new FixedLoop(() => this.step(), (a) => this.draw(a));
+    this.loop = new FixedLoop(() => this.step(), (a, ms) => { this.adaptive.frame(ms, performance.now()); this.draw(a); });
     window.addEventListener('keydown', (e) => {
       if (e.code === 'F2') { e.preventDefault(); save.settings.showPerf = !save.settings.showPerf; persist(); }
       if (e.code === 'F4') { e.preventDefault(); this.showHitboxes = !this.showHitboxes; }

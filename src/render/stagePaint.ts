@@ -10,6 +10,14 @@ import { roundRect, shade } from './rig';
 const TILE = 256, UNITS = 64;
 const patterns = new Map<string, CanvasPattern | null>();
 
+/** Gradients for static geometry are built once and reused (no per-frame allocation). */
+const grads = new Map<string, CanvasGradient>();
+function cached(key: string, make: () => CanvasGradient) {
+  let g = grads.get(key);
+  if (!g) { if (grads.size > 400) grads.clear(); g = make(); grads.set(key, g); }
+  return g;
+}
+
 function makePattern(ctx: CanvasRenderingContext2D, theme: StageDef['theme']): CanvasPattern | null {
   const key = theme;
   if (patterns.has(key)) return patterns.get(key)!;
@@ -134,8 +142,8 @@ export function drawStage(ctx: CanvasRenderingContext2D, stage: StageDef, platfo
   }
   if (stage.theme === 'forge') {
     const ly = stage.blast.b - 160;
-    const g = ctx.createLinearGradient(0, ly - 30, 0, ly + 300);
-    g.addColorStop(0, 'rgba(255,220,120,0.95)'); g.addColorStop(0.15, 'rgba(255,90,20,0.85)'); g.addColorStop(1, 'rgba(120,10,0,0.9)');
+    const g = cached(`lava${ly}`, () => { const q = ctx.createLinearGradient(0, ly - 30, 0, ly + 300);
+      q.addColorStop(0, 'rgba(255,220,120,0.95)'); q.addColorStop(0.15, 'rgba(255,90,20,0.85)'); q.addColorStop(1, 'rgba(120,10,0,0.9)'); return q; });
     ctx.fillStyle = g;
     ctx.beginPath(); ctx.moveTo(stage.blast.l, ly);
     for (let x = stage.blast.l; x <= stage.blast.r; x += 80) ctx.lineTo(x, ly + Math.sin(x * 0.01 + t * 0.05) * 18 + Math.sin(x * 0.023 - t * 0.03) * 8);
@@ -208,11 +216,12 @@ function drawSolid(ctx: CanvasRenderingContext2D, stage: StageDef, p: Platform, 
   ctx.lineJoin = 'round';
   solidPath(ctx, p); ctx.lineWidth = 8; ctx.strokeStyle = '#05040c'; ctx.stroke();
   ctx.fillStyle = pat ?? th.body1; ctx.fill();
-  const sh = ctx.createLinearGradient(0, p.y, 0, p.y + h);
-  sh.addColorStop(0, 'rgba(255,255,255,0.10)'); sh.addColorStop(0.25, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.6)');
+  const key = `${stage.id}:${p.index}:${p.x1}:${p.y}`;
+  const sh = cached(`sh${key}`, () => { const q = ctx.createLinearGradient(0, p.y, 0, p.y + h);
+    q.addColorStop(0, 'rgba(255,255,255,0.10)'); q.addColorStop(0.25, 'rgba(0,0,0,0)'); q.addColorStop(1, 'rgba(0,0,0,0.6)'); return q; });
   ctx.fillStyle = sh; ctx.fill();
-  const side = ctx.createLinearGradient(p.x1, 0, p.x2, 0);
-  side.addColorStop(0, 'rgba(0,0,0,0.35)'); side.addColorStop(0.15, 'rgba(0,0,0,0)'); side.addColorStop(0.85, 'rgba(0,0,0,0)'); side.addColorStop(1, 'rgba(0,0,0,0.25)');
+  const side = cached(`sd${key}`, () => { const q = ctx.createLinearGradient(p.x1, 0, p.x2, 0);
+    q.addColorStop(0, 'rgba(0,0,0,0.35)'); q.addColorStop(0.15, 'rgba(0,0,0,0)'); q.addColorStop(0.85, 'rgba(0,0,0,0)'); q.addColorStop(1, 'rgba(0,0,0,0.25)'); return q; });
   ctx.fillStyle = side; ctx.fill();
   // rim light along the lower edges
   ctx.strokeStyle = th.glow; ctx.globalAlpha = 0.45; ctx.lineWidth = 3;
@@ -220,8 +229,8 @@ function drawSolid(ctx: CanvasRenderingContext2D, stage: StageDef, p: Platform, 
   // walkable top surface
   const topH = 16;
   ctx.fillStyle = '#05040c'; ctx.fillRect(p.x1 - 3, p.y - 3, w + 6, topH + 5);
-  const tg = ctx.createLinearGradient(0, p.y, 0, p.y + topH);
-  tg.addColorStop(0, th.line); tg.addColorStop(0.18, th.top); tg.addColorStop(1, shadeAlpha(th.top));
+  const tg = cached(`tg${key}`, () => { const q = ctx.createLinearGradient(0, p.y, 0, p.y + topH);
+    q.addColorStop(0, th.line); q.addColorStop(0.18, th.top); q.addColorStop(1, shadeAlpha(th.top)); return q; });
   ctx.fillStyle = tg; ctx.fillRect(p.x1, p.y, w, topH);
   // surface decoration
   switch (stage.theme) {
@@ -267,8 +276,8 @@ function drawSolid(ctx: CanvasRenderingContext2D, stage: StageDef, p: Platform, 
   }
   // ledge markers: glowing caps so grab points read at a glance
   for (const lx of [p.x1, p.x2]) {
-    const g = ctx.createRadialGradient(lx, p.y + 6, 0, lx, p.y + 6, 34);
-    g.addColorStop(0, th.glow); g.addColorStop(1, 'rgba(0,0,0,0)');
+    const g = cached(`lg${key}:${lx}`, () => { const q = ctx.createRadialGradient(lx, p.y + 6, 0, lx, p.y + 6, 34);
+      q.addColorStop(0, th.glow); q.addColorStop(1, 'rgba(0,0,0,0)'); return q; });
     ctx.globalAlpha = 0.5 + 0.2 * Math.sin(t * 0.08); ctx.fillStyle = g; ctx.fillRect(lx - 34, p.y - 28, 68, 68); ctx.globalAlpha = 1;
     ctx.fillStyle = '#05040c'; roundRect(ctx, lx - 8, p.y - 4, 16, 24, 5); ctx.fill();
     ctx.fillStyle = th.glow; roundRect(ctx, lx - 5, p.y - 1, 10, 18, 3); ctx.fill();
@@ -281,8 +290,8 @@ function shadeAlpha(c: string) { return shade(c, -0.35); }
 function drawSoft(ctx: CanvasRenderingContext2D, stage: StageDef, p: Platform, t: number) {
   const th = THEMES[stage.theme];
   const w = p.x2 - p.x1;
-  const g = ctx.createLinearGradient(0, p.y, 0, p.y + 46);
-  g.addColorStop(0, th.soft); g.addColorStop(1, 'rgba(0,0,0,0)');
+  const g = cached(`sf${stage.id}:${p.index}:${p.y}`, () => { const q = ctx.createLinearGradient(0, p.y, 0, p.y + 46);
+    q.addColorStop(0, th.soft); q.addColorStop(1, 'rgba(0,0,0,0)'); return q; });
   ctx.globalAlpha = 0.28; ctx.fillStyle = g; ctx.fillRect(p.x1 + 8, p.y + 6, w - 16, 40); ctx.globalAlpha = 1;
   ctx.fillStyle = '#05040c'; roundRect(ctx, p.x1 - 3, p.y - 5, w + 6, 17, 8); ctx.fill();
   ctx.fillStyle = th.soft; ctx.globalAlpha = 0.85; roundRect(ctx, p.x1, p.y - 2, w, 11, 5.5); ctx.fill(); ctx.globalAlpha = 1;

@@ -99,7 +99,14 @@ Every stage has its own procedurally composed theme. There are also menu and vic
 ## Engineering notes
 
 - **No-lag loop:** the simulation steps at a fixed 60 Hz, separate from rendering. Frame delta is clamped to 100 ms and catch-up is capped at 6 steps, so alt-tabbing or a GC hitch never breaks physics. Rendering interpolates between steps.
-- **4K / Retina:** the canvas backing store is `cssSize × devicePixelRatio` (up to 3×). Settings include a 75%/50% render-scale option for weaker GPUs.
+- **4K without lag:** the default "Auto" resolution renders at the screen's native sharpness, capped at 4K (3840×2160 pixels).
+  - A dynamic-resolution controller (`src/render/adaptive.ts`) watches real frame times and, only if the game drops below 60 FPS, lowers the render resolution in 10% steps (down to 50%). It climbs back once frames are smooth again, with exponential back-off so it never oscillates. Native, 75% and 50% can also be fixed in Settings.
+  - Cost-saving measures:
+    - Distant background layers render at half resolution on high-res screens.
+    - Pre-built mip levels with bilinear sampling in-game, avoiding Chrome's slow high-quality resample path.
+    - Static stage gradients are cached.
+    - There are no full-screen backdrop blurs.
+  - The Perf HUD (F2) shows the live resolution and scale.
 - **Art pipeline:** everything is procedural vector art, so it is sharp at any resolution.
   - **Fighters:** cel-shaded tapered limbs, ink outlines, rim/cel highlights, per-character costumes and heads, reactive capes, scarves and hair, and expressions for blinking, attacking and getting hurt. Platform surfaces use pattern tiles cached at 4 px per world unit.
   - **Backgrounds:** soft sky glows and aurora are baked into a quarter-resolution atmosphere layer and upscaled with one draw. Crisp silhouettes stay full-resolution vector. Foreground layers add depth.

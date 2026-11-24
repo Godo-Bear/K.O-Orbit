@@ -18,7 +18,7 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
 .ui-root { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; z-index: 2; }
 .ui-root.hidden { display: none; }
 .ui-root > *, .pause-overlay > * { zoom: var(--ui-zoom, 1); }
-.ui-root:not(.title):not(.hidden) { background: radial-gradient(ellipse at center, rgba(10, 8, 32, 0.55), rgba(6, 4, 20, 0.88)); backdrop-filter: blur(2px); }
+.ui-root:not(.title):not(.hidden) { background: radial-gradient(ellipse at center, rgba(10, 8, 32, 0.62), rgba(6, 4, 20, 0.9)); }
 .ui-root.wide { align-items: flex-start; }
 
 button { font: inherit; color: inherit; }
@@ -159,7 +159,7 @@ button { font: inherit; color: inherit; }
 @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 /* ---------- pause ---------- */
-.pause-overlay { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; background: rgba(4, 3, 16, 0.6); backdrop-filter: blur(3px); padding: 16px; overflow-y: auto; }
+.pause-overlay { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; background: rgba(4, 3, 16, 0.7); padding: 16px; overflow-y: auto; }
 .pause-box { width: min(720px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 20px; text-align: center; }
 .pause-box h2 { font-size: 2.4rem; font-style: italic; margin: 0 0 8px; letter-spacing: 0.1em; }
 .hidden { display: none !important; }

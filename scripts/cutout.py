@@ -7,7 +7,7 @@ For each fighter we export:
 and public/art/manifest.json with sizes. Re-run after adding sheets:  python3 scripts/cutout.py
 """
 import json, os
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter, ImageChops
 
 SRC, OUT = 'art-src', 'public/art'
 MAGENTA = (255, 0, 255)
@@ -83,6 +83,8 @@ def cut(img: Image.Image, box, thresh=42, holes=0, minhole=60, erase=()):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
+    for fn in os.listdir(OUT):
+        if fn.endswith('.png') or fn.endswith('.webp'): os.remove(os.path.join(OUT, fn))
     manifest = {}
     for cid, s in SHEETS.items():
         path = os.path.join(SRC, s['file'])
@@ -92,8 +94,8 @@ def main():
         head = cut(img, s['head'], s.get('thresh', 42), 0 if s.get('flip_head') else s.get('holes', 0))
         if s.get('flip_full'): full = full.transpose(Image.FLIP_LEFT_RIGHT)
         if s.get('flip_head'): head = head.transpose(Image.FLIP_LEFT_RIGHT)
-        full.save(os.path.join(OUT, f'{cid}_full.png'), optimize=True)
-        head.save(os.path.join(OUT, f'{cid}_head.png'), optimize=True)
+        full.save(os.path.join(OUT, f'{cid}_full.webp'), 'WEBP', quality=90, method=4)
+        head.save(os.path.join(OUT, f'{cid}_head.webp'), 'WEBP', quality=90, method=4)
         manifest[cid] = {'full': list(full.size), 'head': list(head.size)}
         print(cid, 'full', full.size, 'head', head.size)
     for cid in list(manifest): build_rig(cid, manifest)
@@ -185,7 +187,7 @@ def _close(mask_img, radius):
 
 def build_rig(cid, manifest):
     import numpy as np
-    path = os.path.join(OUT, f'{cid}_full.png')
+    path = os.path.join(OUT, f'{cid}_full.webp')
     if cid not in RIGS or not os.path.exists(path): return
     full = Image.open(path).convert('RGBA')
     W, H = full.size
@@ -210,10 +212,26 @@ def build_rig(cid, manifest):
         piece[~take, 3] = 0
         pimg = Image.fromarray(piece, 'RGBA')
         if holes.any(): pimg = _inpaint(pimg, holes, shade=0.9)
+        pa = pimg.getchannel('A')
+        pimg.putalpha(ImageChops.multiply(pa, pa.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(5)).point(lambda v: 255 if v > 0 else 0)))
+        # split into upper (shoulder->elbow / hip->knee) and lower segments with a small overlap at the joint
+        arr = np.asarray(pimg).copy()
+        yy, xx = np.mgrid[0:H, 0:W]
+        vx, vy = end[0] - pivot[0], end[1] - pivot[1]
+        tproj = ((xx - pivot[0]) * vx + (yy - pivot[1]) * vy) / (L * L)
+        jt = 0.5
+        joint = [pivot[0] + vx * jt, pivot[1] + vy * jt]
+        segs = {}
+        for seg, m in (('u', tproj < jt + 0.07), ('l', tproj > jt - 0.05)):
+            a2 = arr.copy(); a2[~m, 3] = 0
+            si = Image.fromarray(a2, 'RGBA'); bb = si.getbbox()
+            if not bb: bb = (0, 0, 1, 1)
+            si = si.crop(bb); si.save(os.path.join(OUT, f'{cid}_rig_{name}_{seg}.webp'), 'WEBP', quality=90, method=4)
+            segs[seg] = [bb[0], bb[1]]
         bbox = pimg.getbbox()
         pimg = pimg.crop(bbox)
-        pimg.save(os.path.join(OUT, f'{cid}_rig_{name}.png'), optimize=True)
-        parts.append({'name': name, 'layer': layer, 'pivot': pivot, 'end': end, 'off': [bbox[0], bbox[1]], 'size': list(pimg.size)})
+        pimg.save(os.path.join(OUT, f'{cid}_rig_{name}.webp'), 'WEBP', quality=90, method=4)
+        parts.append({'name': name, 'layer': layer, 'pivot': pivot, 'end': end, 'joint': [round(joint[0], 1), round(joint[1], 1)], 'off': [bbox[0], bbox[1]], 'size': list(pimg.size), 'offU': segs['u'], 'offL': segs['l']})
     # body = everything else, with the area the limbs used to cover repainted
     body = np.asarray(full).copy()
     body[claimed, 3] = 0
@@ -222,7 +240,11 @@ def build_rig(cid, manifest):
     closed = np.asarray(_close(bmask, 26)) > 0
     fill = ((closed & alpha) | joint_fill) & claimed
     bimg = _inpaint(bimg, fill, shade=0.78)
-    bimg.save(os.path.join(OUT, f'{cid}_rig_body.png'), optimize=True)
+    # remove thin slivers left along cut edges (they'd show as stray lines once outlined)
+    ba = bimg.getchannel('A')
+    opened = ba.filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5))
+    bimg.putalpha(ImageChops.multiply(ba, opened.point(lambda v: 255 if v > 0 else 0)))
+    bimg.save(os.path.join(OUT, f'{cid}_rig_body.webp'), 'WEBP', quality=90, method=4)
     manifest[cid]['rig'] = {'size': [W, H], 'parts': parts}
     print(cid, 'rig', [p['name'] for p in parts])
 

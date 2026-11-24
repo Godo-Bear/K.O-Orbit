@@ -227,3 +227,9 @@ button { font: inherit; color: inherit; }
 .practice-col .cycler { justify-content: space-between; }
 .practice-pause { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
 .practice-pause .cycler { justify-content: space-between; }
+
+.hero-lineup { display: flex; justify-content: center; margin: 6px auto -10px; pointer-events: none; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5)); }
+.hero-lineup canvas { max-width: 100%; height: auto !important; }
+.story-bg { position: absolute; inset: 0; z-index: 0; border-radius: 16px; }
+.map-title, .story-map { z-index: 1; }
+.press-start { margin-top: 18px; }

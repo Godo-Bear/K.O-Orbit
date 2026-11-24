@@ -7,6 +7,7 @@ import type { SlotConfig } from '../sim/types';
 import { STORY, isStageUnlocked, isCharUnlocked, totalStars, type StoryStage } from '../story/campaign';
 import { el, btn, cycler, portraitCanvas, mount } from './dom';
 import { stagePreview } from './versus';
+import { storyMapCanvas } from './keyart';
 import type { App } from './app';
 
 const pick = { charId: 'nova', device: 'kb1', selected: 0 };
@@ -91,5 +92,6 @@ export function storyMapScreen(app: App): HTMLElement {
     el('div', { class: 'screen-head' }, btn('◀ Back', () => app.modes(), 'small ghost'), el('h1', {}, 'STORY MODE'), el('div', { class: 'count-pill' }, `★ ${totalStars()}/${STORY.length * 3}`)),
     el('div', { class: 'story-layout' }, el('div', { class: 'map-wrap' }, el('div', { class: 'map-title' }, 'THE ORBIT OF AUREX'), map), brief),
   );
+  storyMapCanvas(root.querySelector('.map-wrap') as HTMLElement);
   return root;
 }

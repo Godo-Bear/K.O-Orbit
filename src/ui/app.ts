@@ -18,6 +18,7 @@ import { storyMapScreen } from './story';
 import { onlineMenuScreen } from './online';
 import { settingsScreen, controlsScreen, controlsGuide } from './options';
 import { practiceScreen, DUMMY_MODES, DUMMY_PCTS } from './practice';
+import { heroLineup } from './keyart';
 
 export class App {
   renderer: Renderer;
@@ -110,6 +111,7 @@ export class App {
     const screen = el('div', { class: 'title-screen', on: { click: go } },
       el('div', { class: 'logo' }, el('span', { class: 'logo-ko' }, 'K.O'), el('span', { class: 'logo-orbit' }, 'ORBIT')),
       el('div', { class: 'tagline' }, 'A platform fighter for up to 10 players'),
+      el('div', { class: 'hero-lineup' }, heroLineup(Math.min(1100, window.innerWidth / (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-zoom')) || 1) - 40), Math.min(360, window.innerHeight * 0.38))),
       el('div', { class: 'press-start blink' }, 'PRESS START'),
       el('div', { class: 'title-hint' }, 'Enter · Click · Gamepad A / Start'),
     );

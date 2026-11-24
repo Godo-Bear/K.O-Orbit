@@ -1,5 +1,5 @@
 import type { Fighter } from '../sim/fighter';
-import { ART_FRAMING, drawArt, drawArtRect, getArt, type CharRig, type RigPart } from './art';
+import { ART_FRAMING, drawArt, drawArtRect, drawInkRect, getArt, type CharRig, type RigPart } from './art';
 import { base, type Pose } from './rig';
 
 /** Direction (radians from straight-down, + = forward) from a 2-segment limb's root to its tip. */
@@ -46,12 +46,24 @@ function drawPuppet(ctx: CanvasRenderingContext2D, rig: CharRig, f: Fighter, pos
     ctx.rotate(-rot);
     if (thrust > 0) { // extend the striking limb along its own axis (a real thrust, not just a swing)
       const dx = p.end[0] - p.pivot[0], dy = p.end[1] - p.pivot[1];
-      const e = thrust * 0.16;
+      const e = thrust * 0.12;
       ctx.translate(dx * e, dy * e);
     }
     if (pop !== 1) ctx.scale(pop, pop);
     ctx.translate(-p.pivot[0], -p.pivot[1]);
-    drawArtRect(ctx, p.img, p.off[0], p.off[1], p.img.w, p.img.h, flash);
+    if (p.upper && p.lower && p.joint && p.offU && p.offL) {
+      // two-piece limb: the lower segment bends at the elbow / knee from the skeleton's joint angle
+      const bend = Math.max(-1.7, Math.min(1.7, (pose[p.name][1] - IDLE[p.name][1]) * 0.9));
+      const [jx, jy] = p.joint, u = p.upper, l = p.lower, oU = p.offU, oL = p.offL;
+      const lower = (fn: () => void) => { ctx.save(); ctx.translate(jx, jy); ctx.rotate(-bend); ctx.translate(-jx, -jy); fn(); ctx.restore(); };
+      drawInkRect(ctx, u, oU[0], oU[1], u.w, u.h);
+      lower(() => drawInkRect(ctx, l, oL[0], oL[1], l.w, l.h));
+      drawArtRect(ctx, u, oU[0], oU[1], u.w, u.h, flash);
+      lower(() => drawArtRect(ctx, l, oL[0], oL[1], l.w, l.h, flash));
+    } else {
+      drawInkRect(ctx, p.img, p.off[0], p.off[1], p.img.w, p.img.h);
+      drawArtRect(ctx, p.img, p.off[0], p.off[1], p.img.w, p.img.h, flash);
+    }
     ctx.restore();
   };
   const lean = () => { ctx.translate(hip[0], hip[1]); ctx.rotate(pose.lean * 0.8); ctx.translate(-hip[0], -hip[1]); };
@@ -60,6 +72,7 @@ function drawPuppet(ctx: CanvasRenderingContext2D, rig: CharRig, f: Fighter, pos
   if (legB) drawPart(legB);
   ctx.save(); lean();
   if (armB) drawPart(armB);
+  drawInkRect(ctx, rig.body, 0, 0, rig.body.w, rig.body.h);
   drawArtRect(ctx, rig.body, 0, 0, rig.body.w, rig.body.h, flash);
   ctx.restore();
   if (legF) drawPart(legF);
@@ -145,7 +158,7 @@ export function drawSpriteFighter(ctx: CanvasRenderingContext2D, f: Fighter, x: 
   if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
   // soft contact shadow under the sprite
   if (rig && pose) drawPuppet(ctx, rig, f, pose, H, flash);
-  else drawArt(ctx, a, 0, 0, H, flash);
+  else drawArt(ctx, a, 0, 0, H, flash, 1, true);
   ctx.restore();
   return true;
 }

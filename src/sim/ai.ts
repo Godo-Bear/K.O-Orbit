@@ -216,5 +216,5 @@ export class CpuBrain {
 
   private clearHolds() { this.holdX = 0; this.holdY = 0; this.holdShield = 0; this.holdJump = 0; this.holdAtk = 0; }
   private isTeleporter(f: Fighter) { return f.char.id === 'volt'; }
-  private hasHorizontalRecovery(f: Fighter) { return ['nova', 'brick', 'zephyr', 'ember', 'rook', 'omega', 'glacia'].includes(f.char.id); }
+  private hasHorizontalRecovery(f: Fighter) { return ['nova', 'brick', 'zephyr', 'ember', 'rook', 'omega', 'glacia', 'kaida', 'seraphine', 'bolt9'].includes(f.char.id); }
 }

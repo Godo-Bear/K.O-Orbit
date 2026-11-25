@@ -1,7 +1,7 @@
 import type { Fighter } from './fighter';
 import type { World } from './world';
 
-export type Fx = 'hit' | 'fire' | 'elec' | 'ice' | 'slash' | 'dark' | 'wind';
+export type Fx = 'hit' | 'fire' | 'elec' | 'ice' | 'slash' | 'dark' | 'wind' | 'water' | 'arcane' | 'solar';
 
 export interface Hitbox {
   s: number; e: number; // active frames (inclusive, 1-based move frame)

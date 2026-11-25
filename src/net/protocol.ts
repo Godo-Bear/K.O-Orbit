@@ -3,8 +3,8 @@ import { MOVE_IDS } from '../sim/characters';
 import type { World } from '../sim/world';
 import type { Fx, GameEvent } from '../sim/types';
 
-const FX_LIST: Fx[] = ['hit', 'fire', 'elec', 'ice', 'slash', 'dark', 'wind'];
-const KINDS = ['orb', 'plasma', 'boulder', 'shuriken', 'ball', 'fireball', 'lance', 'void', 'meteor'];
+const FX_LIST: Fx[] = ['hit', 'fire', 'elec', 'ice', 'slash', 'dark', 'wind', 'water', 'arcane', 'solar'];
+const KINDS = ['orb', 'plasma', 'boulder', 'shuriken', 'ball', 'fireball', 'lance', 'void', 'meteor', 'water', 'arcane', 'spear', 'fist', 'book'];
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 /** Host → clients: compact world snapshot. */

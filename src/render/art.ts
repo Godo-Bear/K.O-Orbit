@@ -18,6 +18,10 @@ export const ART_FRAMING: Record<string, { height: number; headH: number; headY:
   volt: { height: 1.16, headH: 40, headY: 0.9, faces: 1 },
   brick: { height: 1.02, headH: 34, headY: 0.92, faces: 1 },
   ember: { height: 1.12, headH: 42, headY: 0.9, faces: 1 },
+  kaida: { height: 1.1, headH: 40, headY: 0.9, faces: 1 },
+  pip: { height: 1.25, headH: 44, headY: 0.9, faces: 1 },
+  seraphine: { height: 1.26, headH: 40, headY: 0.9, faces: 1 },
+  bolt9: { height: 1.08, headH: 36, headY: 0.92, faces: 1 },
   zephyr: { height: 1.14, headH: 38, headY: 0.92, faces: 1 },
 };
 

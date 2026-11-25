@@ -13,6 +13,7 @@ const POOL = 1400;
 export const FX_COLORS: Record<Fx, [string, string]> = {
   hit: ['#fff6c2', '#ffb02e'], fire: ['#ffe14d', '#ff4a1a'], elec: ['#f4ffff', '#4fd8ff'], ice: ['#ffffff', '#8fe1ff'],
   slash: ['#ffffff', '#ffd76a'], dark: ['#f0c8ff', '#9b3dff'], wind: ['#ffffff', '#7dffc0'],
+  water: ['#ffffff', '#4fc3ff'], arcane: ['#e8ffff', '#3ff0ff'], solar: ['#fffbe0', '#ffc233'],
 };
 
 export class Effects {

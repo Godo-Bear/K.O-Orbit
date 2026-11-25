@@ -21,12 +21,50 @@ SHEETS = {
     'ember':  {'file': 'ember-sheet.jpg',  'full': (330, 52, 656, 652), 'head': (190, 188, 302, 334)},
     'brick':  {'file': 'granite-sheet.jpg', 'full': (20, 195, 680, 866), 'head': (710, 386, 802, 478), 'holes': 18, 'erase': [(560, 0, 658, 110), (70, 50, 92, 105), (40, 415, 65, 470), (430, 55, 460, 90), (565, 215, 585, 248), (492, 555, 540, 577), (5, 490, 105, 540), (25, 5, 125, 55), (435, 33, 520, 97), (525, 173, 615, 215), (520, 543, 620, 585)]},
     'volt':   {'file': 'volt-sheet.jpg',   'full': (36, 100, 500, 975), 'head': (518, 128, 660, 283)},
+    'kaida':  {'file': 'kaida-sheet.jpg', 'full': (25, 225, 505, 895), 'head': (514, 116, 656, 284), 'holes': 10, 'minhole': 120},
+    'pip':    {'file': 'pip-sheet.jpg', 'full': (25, 250, 470, 822), 'head': (512, 114, 668, 282), 'holes': 4, 'minhole': 600},
+    'seraphine': {'file': 'seraphine-sheet.jpg', 'full': (8, 160, 506, 975), 'head': (834, 42, 976, 196)},
+    'bolt9':  {'file': 'bolt-sheet.jpg', 'full': (20, 168, 615, 895), 'head': (540, 148, 662, 258), 'key': True, 'erase': [(60, 0, 190, 85), (520, 0, 595, 95), (545, 180, 595, 362)]},
     'omega':  {'file': 'omega-sheet.jpg',  'full': (82, 136, 606, 892), 'head': (562, 380, 678, 510), 'holes': 22, 'minhole': 6},
 }
 
-def cut(img: Image.Image, box, thresh=42, holes=0, minhole=60, erase=()):
+def cut(img: Image.Image, box, thresh=42, holes=0, minhole=60, erase=(), key=False):
     im = img.crop(box).convert('RGB')
     w, h = im.size
+    if key:  # paper/grid sheets: background = light & neutral; then fill enclosed holes
+        import numpy as np
+        a = np.asarray(im).astype(int)
+        bgm = ((a.max(2) - a.min(2)) < 22) & (a.min(2) > 196)
+        bgimg = Image.fromarray((bgm * 255).astype('uint8'), 'L')
+        if erase:
+            dd = ImageDraw.Draw(bgimg)
+            for b in erase: dd.rectangle(b, fill=255)
+        for x in range(0, w, 4):
+            for y in (0, h - 1):
+                if bgimg.getpixel((x, y)) == 255: ImageDraw.floodfill(bgimg, (x, y), 128)
+        for y in range(0, h, 4):
+            for x in (0, w - 1):
+                if bgimg.getpixel((x, y)) == 255: ImageDraw.floodfill(bgimg, (x, y), 128)
+        # enclosed background pockets (gaps between arm and body) bigger than a highlight -> transparent
+        enc = bgimg.copy(); ep = enc.load()
+        for y in range(0, h, 3):
+            for x in range(0, w, 3):
+                if ep[x, y] == 255:
+                    ImageDraw.floodfill(enc, (x, y), 60)
+                    n = enc.histogram()[60]
+                    enc = enc.point(lambda v, big=n > 350: (128 if big else 20) if v == 60 else v); ep = enc.load()
+        alpha = enc.point(lambda v: 0 if v == 128 else 255)
+        alpha = alpha.filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.MinFilter(5))
+        probe = alpha.copy(); pp = probe.load(); label = 1; comps = []
+        for y in range(0, h, 4):
+            for x in range(0, w, 4):
+                if pp[x, y] == 255 and label < 250:
+                    ImageDraw.floodfill(probe, (x, y), label); comps.append((probe.histogram()[label], label)); label += 1; pp = probe.load()
+        big = max(c for c, _ in comps); keep = {l for c, l in comps if c >= big * 0.02}
+        alpha = probe.point(lambda v: 255 if v in keep else 0).filter(ImageFilter.GaussianBlur(0.6))
+        out = im.convert('RGBA'); out.putalpha(alpha)
+        bb = alpha.getbbox()
+        return out.crop(bb) if bb else out
     work = im.copy()
     # flood the background from every border pixel (every 3px)
     for x in range(0, w, 3):
@@ -90,7 +128,7 @@ def main():
         path = os.path.join(SRC, s['file'])
         if not os.path.exists(path): continue
         img = Image.open(path)
-        full = cut(img, s['full'], s.get('thresh', 42), s.get('holes', 0), s.get('minhole', 60), s.get('erase', ()))
+        full = cut(img, s['full'], s.get('thresh', 42), s.get('holes', 0), s.get('minhole', 60), s.get('erase', ()), s.get('key', False))
         head = cut(img, s['head'], s.get('thresh', 42), 0 if s.get('flip_head') else s.get('holes', 0))
         if s.get('flip_full'): full = full.transpose(Image.FLIP_LEFT_RIGHT)
         if s.get('flip_head'): head = head.transpose(Image.FLIP_LEFT_RIGHT)
@@ -147,6 +185,28 @@ RIGS = {
         ('armB', 'back', (140, 250), (35, 330), [(160, 235), (120, 225), (100, 250), (65, 288), (15, 298), (0, 340), (20, 402), (80, 422), (115, 406), (130, 360), (150, 300)]),
         ('legF', 'front', (280, 500), (360, 800), [(240, 480), (320, 470), (330, 540), (342, 580), (380, 600), (395, 700), (459, 760), (459, 863), (298, 863), (290, 760), (284, 680), (270, 600), (250, 540)]),
         ('legB', 'back', (175, 500), (75, 800), [(145, 470), (235, 480), (230, 540), (190, 600), (170, 640), (145, 720), (110, 780), (102, 863), (0, 863), (20, 800), (60, 720), (85, 640), (110, 580), (130, 520)]),
+    ],
+    'kaida': [
+        ('armF', 'front', (290, 185), (450, 150), [(268, 165), (330, 158), (400, 168), (425, 115), (479, 115), (479, 255), (440, 262), (395, 256), (330, 246), (288, 236)]),
+        ('armB', 'back', (178, 200), (15, 282), [(195, 178), (160, 172), (100, 205), (40, 205), (0, 255), (0, 305), (60, 322), (130, 302), (178, 268), (202, 232)]),
+        ('legF', 'front', (300, 385), (405, 545), [(262, 362), (332, 352), (382, 400), (432, 480), (445, 565), (385, 575), (342, 522), (302, 452), (256, 422)]),
+        ('legB', 'back', (205, 385), (80, 640), [(150, 372), (252, 372), (242, 452), (192, 522), (142, 582), (115, 664), (35, 664), (58, 582), (80, 502), (120, 432)]),
+    ],
+    'pip': [
+        ('armF', 'front', (345, 292), (420, 320), [(322, 268), (380, 252), (392, 0), (441, 0), (441, 445), (398, 445), (388, 368), (330, 336)]),
+        ('armB', 'back', (165, 300), (112, 385), [(195, 272), (142, 280), (92, 330), (86, 412), (142, 422), (182, 362), (212, 322)]),
+    ],
+    'seraphine': [
+        ('armF', 'front', (215, 240), (195, 410), [(200, 222), (248, 232), (252, 300), (236, 380), (240, 440), (262, 445), (480, 689), (498, 742), (470, 748), (150, 368), (0, 201), (0, 160), (30, 165), (170, 340), (178, 300), (185, 250)]),
+        ('armB', 'back', (352, 240), (405, 388), [(330, 222), (376, 228), (402, 300), (428, 360), (428, 412), (386, 418), (370, 362), (344, 300)]),
+        ('legF', 'front', (240, 455), (185, 770), [(200, 432), (280, 442), (275, 522), (250, 602), (222, 702), (218, 795), (148, 795), (163, 702), (184, 602), (194, 522)]),
+        ('legB', 'back', (322, 455), (385, 730), [(300, 442), (362, 442), (372, 522), (362, 602), (377, 682), (442, 718), (442, 755), (338, 755), (330, 682), (320, 602), (300, 522)]),
+    ],
+    'bolt9': [
+        ('armF', 'front', (440, 150), (530, 520), [(420, 118), (490, 98), (502, 200), (482, 262), (547, 320), (562, 400), (593, 480), (593, 565), (500, 565), (480, 482), (440, 422), (430, 332), (420, 252)]),
+        ('armB', 'back', (140, 150), (80, 520), [(178, 108), (95, 98), (80, 200), (40, 250), (8, 330), (28, 420), (40, 482), (60, 602), (120, 592), (150, 522), (160, 442), (160, 332), (150, 242), (186, 200)]),
+        ('legF', 'front', (360, 422), (420, 640), [(320, 400), (400, 400), (432, 470), (442, 560), (502, 580), (502, 672), (330, 672), (330, 560), (320, 470)]),
+        ('legB', 'back', (240, 422), (180, 640), [(200, 400), (275, 400), (275, 470), (252, 560), (252, 672), (82, 672), (102, 580), (152, 540), (196, 470)]),
     ],
     'omega': [
         ('armF', 'front', (345, 192), (390, 422), [(318, 168), (382, 148), (404, 200), (398, 280), (424, 330), (446, 422), (412, 474), (358, 458), (344, 400), (344, 300), (324, 240)]),

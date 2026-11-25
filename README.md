@@ -1,6 +1,6 @@
 # K.O Orbit
 
-A fast, responsive platform fighter for the browser. It renders sharply at 4K, runs on a fixed 60 Hz timestep, and supports **up to 10 players (P1–P10)** locally and online. There are 8 fighters, 15 stages, a procedural soundtrack, a Practice mode, and an 8-stage Story Mode that unlocks 4 of the fighters.
+A fast, responsive platform fighter for the browser. It renders sharply at 4K, runs on a fixed 60 Hz timestep, and supports **up to 10 players (P1–P10)** locally and online. There are 12 fighters, 15 stages, a procedural soundtrack, a Practice mode, and an 8-stage Story Mode that unlocks 4 of the fighters.
 
 ## Quick start
 
@@ -94,6 +94,10 @@ Every stage has its own procedurally composed theme. There are also menu and vic
 | Ember, The Hearth Brawler *(unlock)* | Ember skin, flame hair, flaming fists, gold "hearth core" belt | Rushdown: fireballs, flame wheel |
 | Glacia, The Frost Sovereign *(unlock)* | Tall crystal crown, waist-length ice-white hair, crystal armor and skirt, snowflake cape | Control: freezing lances, crystal shield |
 | Rook, The Oathsworn Knight *(unlock)* | Gold-trimmed great-helm with red plume, steel plate, sun crest, chainmail, red cape, glowing longsword | Sword reach: charge blade, riposte |
+| Kaida, The Tide Dancer | Teal-and-white gi, coral sash, long ponytail, water rings | Fast martial artist: water whip, tide rush, bubble shield reflector |
+| Pip, The Pocket Mage | Tiny bearded wizard on a flying spellbook, starry hat, crystal staff | Floaty zoner, 3 jumps: arcane bolt, blink, giant book drop |
+| Seraphine, The Solar Saint | Golden wings, sun halo, white-and-gold armor, radiant spear | Long reach, 3 jumps: sun spear throw, wing dash, solar flare |
+| Bolt-9, The Scrap Titan | Rusty orange robot, green eye, clamp hands, tank treads | Super-heavy: rocket fist, magnet pull, armored overheat blast |
 | Omega, The Void Sovereign *(unlock)* | 7-ft void lord: great curved horns, glowing magenta eyes, spiked dark armor, void-ring emblem, purple-flame fists, tattered cape | Boss: warp strike, singularity |
 
 ## Engineering notes

@@ -356,5 +356,152 @@ export const CHARACTERS: CharDef[] = [];
   });
 }
 
+
+// ---- 9. KAIDA — water martial artist (starter)
+{
+  const m = normals({ reach: 1.05, power: 0.92, speed: 1.12, fx: 'water' });
+  m.nspec = {
+    id: 'nspec', name: 'Water Whip', total: 38, limb: 'armF',
+    hitboxes: [hb(11, 14, 125, -60, 24, 9, 35, 38, 88, { fx: 'water', lag: 1.1 }), hb(11, 14, 70, -60, 22, 7, 40, 30, 70, { fx: 'water' })],
+    update: (f, _w, fr) => { if (!f.grounded && fr < 15) f.vy = Math.min(f.vy, 1.5); },
+  };
+  m.sspec = {
+    id: 'sspec', name: 'Tide Rush', total: 38, limb: 'legF', slide: true, noGravity: [7, 24],
+    hitboxes: [hb(7, 22, 20, -45, 36, 2.5, 50, 30, 15, { fx: 'water', rehit: 5 }), hb(23, 25, 30, -45, 40, 6, 38, 55, 75, { fx: 'water', g: 1 })],
+    update: (f, _w, fr) => { if (fr >= 7 && fr <= 24) { f.vx = 12 * f.facing; if (!f.grounded) f.vy = 0; } if (fr === 25) f.vx *= 0.3; },
+  };
+  const up = helplessUp(21, 4);
+  m.uspec = {
+    id: 'uspec', name: 'Geyser Launch', total: 42, limb: 'armF', helpless: true, recovery: true,
+    hitboxes: [hb(5, 14, 0, 10, 40, 3, 90, 40, 20, { fx: 'water', rehit: 4 }), hb(6, 16, 0, -70, 36, 9, 85, 55, 80, { fx: 'water', g: 1 })],
+    update: (f, w, fr) => up(f, w, fr, 6),
+  };
+  m.dspec = {
+    id: 'dspec', name: 'Bubble Shield', total: 38, limb: 'both', reflect: [4, 28],
+    hitboxes: [hb(4, 6, 0, -50, 56, 4, 80, 55, 25, { fx: 'water' })],
+    update: (f, _w, fr) => { if (!f.grounded && fr < 28) f.vy = Math.min(f.vy, 1.2); },
+  };
+  CHARACTERS.push({
+    id: 'kaida', name: 'Kaida', title: 'The Tide Dancer', starter: true,
+    blurb: 'A graceful water martial artist with a long-reaching water whip, a rushing tide dash and a reflecting bubble shield.',
+    stats: stats({ walk: 4, run: 8.6, air: 3.8, airAccel: 0.42, gravity: 0.6, fall: 10.5, fastFall: 16, jump: 17, weight: 86, size: 0.98 }),
+    visual: vis({ body: '#2aa6a6', accent: '#ff7a7a', skin: '#e8b48c', dark: '#e6f4f6', head: 'round', accessory: 'scarf', bulk: 0.9, fx: 'water', glove: '#e8b48c', boot: '#e8b48c', hair: '#1d2a55', eye: '#1d2a55', cape: '#ff7a7a', emblem: 'wind', shoulder: 13, waist: 9, glow: '#8fdcff' }),
+    moves: m, ratings: { speed: 5, power: 3, weight: 2, air: 4 },
+  });
+}
+
+// ---- 10. PIP — pocket mage (starter)
+{
+  const m = normals({ reach: 0.95, power: 0.85, speed: 1.05, fx: 'arcane' });
+  m.nspec = {
+    id: 'nspec', name: 'Arcane Bolt', total: 28, limb: 'armF', hitboxes: [],
+    update: (f, w, fr) => {
+      if (fr === 9) w.spawnProjectile(f, { x: f.x + 40 * f.facing * f.sz, y: f.y - 60 * f.sz, vx: 15 * f.facing, life: 55, kind: 'arcane', hb: hb(0, 0, 0, 0, 15, 6, 38, 28, 45, { fx: 'arcane' }) });
+      if (!f.grounded && fr < 18) f.vy = Math.min(f.vy, 1.5);
+    },
+  };
+  m.sspec = {
+    id: 'sspec', name: 'Blink', total: 30, limb: 'armF', invuln: [4, 14], noGravity: [4, 16],
+    hitboxes: [hb(14, 16, 20, -50, 34, 6, 45, 40, 60, { fx: 'arcane' })],
+    update: (f, w, fr) => {
+      if (fr === 4) { f.vx = 0; f.vy = 0; }
+      if (fr === 12) { let nx = f.x + 190 * f.facing; const mp = w.mainPlatform(); if (f.grounded) nx = Math.max(mp.x1 + 10, Math.min(mp.x2 - 10, nx)); f.x = nx; }
+    },
+  };
+  m.uspec = {
+    id: 'uspec', name: 'Spellbook Lift', total: 44, limb: 'armF', helpless: true, recovery: true, noGravity: [4, 32],
+    hitboxes: [hb(4, 30, 0, 5, 40, 2, 90, 30, 10, { fx: 'arcane', rehit: 6 })],
+    update: (f, _w, fr) => { if (fr === 4) f.ground = null; if (fr >= 4 && fr <= 32) { f.vy = -10.5; f.vx = f.input.x * 4; } },
+  };
+  m.dspec = {
+    id: 'dspec', name: 'Summon Giant Book', total: 48, limb: 'both', hitboxes: [],
+    update: (f, w, fr) => {
+      if (fr === 14) w.spawnProjectile(f, { x: f.x + 110 * f.facing, y: f.y - 360, vx: 0, vy: 6, gravity: 0.6, life: 90, kind: 'book', hb: hb(0, 0, 0, 0, 38, 15, 270, 40, 70, { fx: 'arcane', lag: 1.3 }) });
+    },
+  };
+  CHARACTERS.push({
+    id: 'pip', name: 'Pip', title: 'The Pocket Mage', starter: true,
+    blurb: 'A tiny wizard on a flying spellbook. Arcane bolts, blink teleports, and a giant book dropped from the sky.',
+    stats: stats({ walk: 3, run: 6.2, air: 3.6, airAccel: 0.4, gravity: 0.5, fall: 9, fastFall: 14, jump: 16, djump: 15, jumps: 3, weight: 72, size: 0.86 }),
+    visual: vis({ body: '#5a3a9a', accent: '#ffd23f', skin: '#f0c4a0', dark: '#2a3a7a', head: 'round', accessory: 'antenna', bulk: 0.85, fx: 'arcane', glove: '#f0c4a0', boot: '#6b4423', hair: '#ffffff', eye: '#1a1a2e', cape: null, emblem: 'star', shoulder: 13, waist: 11, glow: '#3ff0ff' }),
+    moves: m, ratings: { speed: 3, power: 3, weight: 1, air: 4 },
+  });
+}
+
+// ---- 11. SERAPHINE — solar saint (starter)
+{
+  const m = normals({ reach: 1.28, power: 1.02, speed: 0.98, fx: 'solar', sword: true });
+  m.nspec = {
+    id: 'nspec', name: 'Sun Spear Throw', total: 40, limb: 'armF', hitboxes: [],
+    update: (f, w, fr) => {
+      if (fr === 15) w.spawnProjectile(f, { x: f.x + 45 * f.facing * f.sz, y: f.y - 70 * f.sz, vx: 16 * f.facing, life: 50, kind: 'spear', hb: hb(0, 0, 0, 0, 18, 11, 35, 40, 75, { fx: 'solar', lag: 1.2 }) });
+    },
+  };
+  m.sspec = {
+    id: 'sspec', name: 'Wing Dash', total: 36, limb: 'armF', slide: true, noGravity: [6, 20],
+    hitboxes: [hb(6, 20, 40, -55, 34, 10, 38, 50, 75, { fx: 'solar' })],
+    update: (f, _w, fr) => { if (fr >= 6 && fr <= 20) { f.vx = 15 * f.facing; f.vy = 0; } if (fr === 21) f.vx *= 0.3; },
+  };
+  const up = helplessUp(22, 4);
+  m.uspec = {
+    id: 'uspec', name: 'Ascension', total: 40, limb: 'armF', helpless: true, recovery: true,
+    hitboxes: [hb(6, 16, 10, -110, 40, 11, 88, 55, 85, { fx: 'solar' })],
+    update: (f, w, fr) => up(f, w, fr, 6),
+  };
+  m.dspec = {
+    id: 'dspec', name: 'Solar Flare', total: 46, limb: 'both', noGravity: [4, 22],
+    hitboxes: [hb(16, 20, 0, -55, 78, 13, 65, 60, 80, { fx: 'solar', lag: 1.2 })],
+    update: (f, _w, fr) => { if (!f.grounded && fr < 22) { f.vy *= 0.5; f.vx *= 0.9; } },
+  };
+  CHARACTERS.push({
+    id: 'seraphine', name: 'Seraphine', title: 'The Solar Saint', starter: true,
+    blurb: 'A radiant winged warrior. Her golden spear reaches far, her wings give her three jumps, and her solar flare burns everything close.',
+    stats: stats({ walk: 3.3, run: 7, air: 3.6, airAccel: 0.36, gravity: 0.55, fall: 10, fastFall: 15.5, jump: 17, djump: 15, jumps: 3, weight: 100, size: 1.08 }),
+    visual: vis({ body: '#f4f4f8', accent: '#f2b51b', skin: '#f3d2b8', dark: '#2a4fb0', head: 'round', accessory: 'crystal', bulk: 1, fx: 'solar', glove: '#2a4fb0', boot: '#f4f4f8', hair: '#ffd34d', eye: '#2f8f6c', cape: null, emblem: 'star', shoulder: 14, waist: 10, glow: '#ffd34d' }),
+    moves: m, ratings: { speed: 3, power: 4, weight: 3, air: 5 },
+  });
+}
+
+// ---- 12. BOLT-9 — scrap titan (starter)
+{
+  const m = normals({ reach: 1.15, power: 1.2, speed: 0.82, fx: 'hit' });
+  m.nspec = {
+    id: 'nspec', name: 'Rocket Fist', total: 44, limb: 'armF', hitboxes: [],
+    update: (f, w, fr) => {
+      if (fr === 16) w.spawnProjectile(f, { x: f.x + 60 * f.facing * f.sz, y: f.y - 60 * f.sz, vx: 13 * f.facing, life: 55, kind: 'fist', hb: hb(0, 0, 0, 0, 24, 13, 40, 45, 80, { fx: 'fire', lag: 1.25 }) });
+    },
+  };
+  m.sspec = {
+    id: 'sspec', name: 'Magnet Pull', total: 44, limb: 'armF',
+    hitboxes: [hb(24, 27, 55, -55, 38, 9, 45, 60, 60)],
+    update: (f, w, fr) => {
+      if (!f.grounded && fr < 26) f.vy = Math.min(f.vy, 1.5);
+      if (fr >= 6 && fr < 24) for (const o of w.fighters) {
+        if (o === f || !o.alive || (f.team >= 0 && o.team === f.team) || o.intangible()) continue;
+        const dx = o.x - f.x;
+        if (Math.sign(dx) === f.facing && Math.abs(dx) < 320 && Math.abs(o.y - f.y) < 140) o.x -= f.facing * 3.2;
+      }
+    },
+  };
+  const up = helplessUp(19, 3);
+  m.uspec = {
+    id: 'uspec', name: 'Jet Booster', total: 44, limb: 'both', helpless: true, recovery: true,
+    hitboxes: [hb(5, 18, 0, 15, 40, 3, 270, 20, 30, { fx: 'fire', rehit: 5 }), hb(5, 9, 0, -60, 44, 10, 85, 55, 80, { g: 1 })],
+    update: (f, w, fr) => up(f, w, fr, 5),
+  };
+  m.dspec = {
+    id: 'dspec', name: 'Overheat Blast', total: 54, limb: 'both', armor: [8, 26],
+    hitboxes: [hb(22, 26, 0, -55, 90, 17, 60, 65, 92, { fx: 'fire', lag: 1.4 })],
+    update: (f, _w, fr) => { if (!f.grounded && fr < 26) f.vy = Math.min(f.vy, 1); },
+  };
+  CHARACTERS.push({
+    id: 'bolt9', name: 'Bolt-9', title: 'The Scrap Titan', starter: true,
+    blurb: 'A rusty heavyweight robot. Rocket fists, a magnet that drags foes in, and an armored overheat blast.',
+    stats: stats({ walk: 2.4, run: 5.4, air: 2.6, airAccel: 0.25, gravity: 0.75, fall: 13.5, fastFall: 20, jump: 16, shortHop: 10, djump: 14, weight: 142, traction: 0.85, size: 1.22, jumpSquat: 4 }),
+    visual: vis({ body: '#e07a2a', accent: '#5cff7a', skin: '#e8d6b0', dark: '#4a3a30', head: 'square', accessory: 'shoulders', bulk: 1.5, fx: 'hit', glove: '#7a7a80', boot: '#2a2a2e', hair: '#4a3a30', eye: '#5cff7a', cape: null, emblem: 'gear', shoulder: 22, waist: 15, glow: '#5cff7a', armor: '#e8d6b0' }),
+    moves: m, ratings: { speed: 1, power: 5, weight: 5, air: 1 },
+  });
+}
+
 export const charById = (id: string): CharDef => CHARACTERS.find((c) => c.id === id) ?? CHARACTERS[0];
 export const MOVE_IDS = Object.keys(CHARACTERS[0].moves);

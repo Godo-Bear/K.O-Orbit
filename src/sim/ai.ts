@@ -118,6 +118,30 @@ export class CpuBrain {
     if (!tgt) { this.holdX = 0; o.x = 0; return o; }
     this.targetSlot = tgt.slot;
 
+    // ---- take turns: if enough other CPUs are already closer to this human, hang back and wait
+    const gang = w.rules.maxGangUp;
+    if (gang && tgt.cfg.type !== 'CPU' && f.cfg.type === 'CPU') {
+      const myD = Math.abs(tgt.x - f.x) + Math.abs(tgt.y - f.y) * 0.5;
+      let closer = 0;
+      for (const c of w.fighters) {
+        if (c === f || c === tgt || !c.alive || c.state === 'dead' || c.cfg.type !== 'CPU' || (tgt.team >= 0 && c.team === tgt.team)) continue;
+        const d = Math.abs(tgt.x - c.x) + Math.abs(tgt.y - c.y) * 0.5;
+        if (d < myD || (d === myD && c.slot < f.slot)) closer++;
+      }
+      if (closer >= gang) {
+        // wait at a respectful distance on the stage, facing the fight
+        const side = f.x >= tgt.x ? 1 : -1;
+        const spot = Math.max(main.x1 + 80, Math.min(main.x2 - 80, tgt.x + side * (380 + (f.slot % 3) * 70)));
+        const dx = spot - f.x;
+        this.clearHolds();
+        if (f.grounded && Math.abs(dx) > 40) { o.x = Math.sign(dx) * 0.6; this.holdX = o.x; }
+        else if (f.grounded && Math.sign(tgt.x - f.x) !== f.facing && f.state === 'idle') o.x = Math.sign(tgt.x - f.x) * 0.25;
+        if (!f.grounded) o.x = Math.abs(dx) > 30 ? Math.sign(dx) : 0;
+        this.wait = 0;
+        return o;
+      }
+    }
+
     // decisions happen on a reaction timer
     if (this.wait > 0) { this.wait--; return o; }
     this.wait = Math.round(this.react * (0.6 + this.rng.next() * 0.8));

@@ -30,7 +30,9 @@ export function buildStoryMatch(st: StoryStage, charId: string, device: string) 
     slot: i + 1, type: 'CPU', charId: e.charId, cpuLevel: Math.max(1, Math.min(9, e.level + d.lvl)), team: e.team ?? -1, scale: e.scale, armor: e.armor, stocks: e.stocks,
     hp: Math.round((e.hp ?? st.rules.hp) * d.hp),
   }));
-  return { rules: { ...st.rules }, slots, story: st, seed: Math.floor(Math.random() * 1e6) };
+  // easier difficulties: CPUs attack one at a time everywhere; Expert lets them all pile in
+  const maxGangUp = d.v === 0 ? 1 : d.v === 3 ? undefined : st.rules.maxGangUp;
+  return { rules: { ...st.rules, maxGangUp }, slots, story: st, seed: Math.floor(Math.random() * 1e6) };
 }
 
 export function storyMapScreen(app: App): HTMLElement {

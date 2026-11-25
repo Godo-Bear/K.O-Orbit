@@ -107,6 +107,8 @@ export interface MatchRules {
   gravityMul?: number;
   damageMul?: number;
   objective?: 'win' | 'survive';
+  /** Story fairness: at most this many CPUs attack the same human at once; the rest hang back and wait their turn. */
+  maxGangUp?: number;
 }
 
 export interface SlotConfig {

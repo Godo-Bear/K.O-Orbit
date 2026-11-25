@@ -20,14 +20,15 @@ export const DIFFICULTIES = [
 ];
 
 export function buildStoryMatch(st: StoryStage, charId: string, device: string) {
-  const teamed = st.enemies.some((e) => e.team !== undefined);
+  const teamed = st.enemies.some((e) => e.team !== undefined) || !!st.allies?.length;
   const d = DIFFICULTIES[save.settings.difficulty] ?? DIFFICULTIES[1];
   const slots: SlotConfig[] = [{
     slot: 0, type: 'HUMAN', charId, cpuLevel: 1, device, team: teamed ? 0 : -1,
     stocks: st.rules.mode === 'time' ? undefined : Math.max(1, (st.playerStocks ?? st.rules.stocks) + d.stocks), hp: st.playerHp, name: 'You',
   }];
-  st.enemies.forEach((e, i) => slots.push({
-    slot: i + 1, type: 'CPU', charId: e.charId, cpuLevel: Math.max(1, Math.min(9, e.level + d.lvl)), team: e.team ?? -1, scale: e.scale, armor: e.armor, stocks: e.stocks,
+  (st.allies ?? []).forEach((a) => slots.push({ slot: slots.length, type: 'CPU', charId: a.charId, cpuLevel: a.level, team: 0, name: 'Ally' }));
+  st.enemies.forEach((e) => slots.push({
+    slot: slots.length, type: 'CPU', charId: e.charId === 'mirror' ? charId : e.charId, cpuLevel: Math.max(1, Math.min(9, e.level + d.lvl)), team: e.team ?? (teamed ? 1 : -1), scale: e.scale, armor: e.armor, stocks: e.stocks,
     hp: Math.round((e.hp ?? st.rules.hp) * d.hp),
   }));
   // easier difficulties: CPUs attack one at a time everywhere; Expert lets them all pile in
@@ -73,9 +74,12 @@ export function storyMapScreen(app: App): HTMLElement {
       el('div', { class: 'objective' }, el('b', {}, 'Objective: '), st.objective),
       el('div', { class: 'brief-row' },
         el('div', { class: 'brief-stage' }, stagePreview(stage, 150, 75), el('span', {}, stage.name)),
+        st.allies?.length ? el('div', { class: 'enemies allies' }, st.allies.map((a) => el('div', { class: 'enemy' },
+          portraitCanvas(54, (c, s) => drawPortrait(c, charById(a.charId), s / 2, s * 0.05, s * 1.2)),
+          el('span', { style: 'color:#2ed573' }, `${charById(a.charId).name} (Ally)`)))) : null,
         el('div', { class: 'enemies' }, st.enemies.map((e) => el('div', { class: 'enemy' },
-          portraitCanvas(54, (c, s) => drawPortrait(c, charById(e.charId), s / 2, s * 0.05, s * 1.2)),
-          el('span', {}, `${charById(e.charId).name}${e.scale && e.scale > 1.3 ? ' (Giant)' : ''}`),
+          portraitCanvas(54, (c, s) => drawPortrait(c, charById(e.charId === 'mirror' ? pick.charId : e.charId), s / 2, s * 0.05, s * 1.2)),
+          el('span', {}, `${e.charId === 'mirror' ? 'Mirror ' : ''}${charById(e.charId === 'mirror' ? pick.charId : e.charId).name}${e.scale && e.scale > 1.3 ? ' (Giant)' : ''}`),
           el('span', { class: 'muted' }, `Lv ${Math.max(1, Math.min(9, e.level + (DIFFICULTIES[save.settings.difficulty] ?? DIFFICULTIES[1]).lvl))}`))))),
       el('div', { class: 'muted small' }, `★★ take ≤ ${st.stars.damage} damage · ★★★ clear within ${st.stars.time}s`),
       st.reward ? el('div', { class: 'reward' }, '🔓 Reward: ', el('b', {}, isCharUnlocked(st.reward) ? `${charById(st.reward).name} (unlocked)` : `Unlock ${charById(st.reward).name}`)) : null,
@@ -94,7 +98,7 @@ export function storyMapScreen(app: App): HTMLElement {
     const best = save.story.cleared[st.id] ?? 0;
     const node = btn([el('span', { class: 'node-num' }, open ? String(i + 1) : '🔒'), best ? el('span', { class: 'node-stars' }, '★'.repeat(best)) : null, st.reward ? el('span', { class: 'node-reward' }, '🎁') : null],
       () => { if (!open) return; pick.selected = i; map.querySelectorAll('.story-node').forEach((n) => n.classList.remove('sel')); node.classList.add('sel'); renderBrief(); },
-      `story-node ${open ? '' : 'locked'} ${best ? 'cleared' : ''} ${i === pick.selected ? 'sel' : ''} ${i === STORY.length - 1 ? 'boss' : ''}`,
+      `story-node ${open ? '' : 'locked'} ${best ? 'cleared' : ''} ${i === pick.selected ? 'sel' : ''} ${st.boss ? 'boss' : ''}`,
       { style: `left:${st.map.x}%;top:${st.map.y}%`, title: st.title, disabled: !open });
     map.append(node);
   });

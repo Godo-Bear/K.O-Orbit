@@ -93,7 +93,7 @@ export function controlsScreen(app: App, back: () => void): HTMLElement {
 
   const render = () => {
     body.innerHTML = '';
-    if (tab === 'guide') { body.append(controlsGuide()); return; }
+    if (tab === 'guide') { body.append(controlsGuide(), btn('Open the full Move Guide (tricks & combos) ▶', () => { cancelCapture(); app.guide(() => app.controls(back), 'tricks'); }, 'primary')); return; }
     if (tab === 'pad') {
       const ps = save.pad;
       const pads = input.connectedPads();

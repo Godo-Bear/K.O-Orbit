@@ -21,6 +21,7 @@ import { onlineMenuScreen } from './online';
 import { settingsScreen, controlsScreen, controlsGuide } from './options';
 import { practiceScreen, DUMMY_MODES, DUMMY_PCTS } from './practice';
 import { heroLineup } from './keyart';
+import { guideScreen } from './guide';
 import { TouchControls } from './touch';
 
 export class App {
@@ -135,10 +136,11 @@ export class App {
       ['STORY MODE', 'Climb the orbit and unlock fighters', () => this.story()],
       ['PRACTICE', 'Training dummy, combo counter & hitboxes', () => this.practice()],
       ['ONLINE', 'Room-code multiplayer · up to 10', () => this.online()],
-      ['CONTROLS', 'Keybinds, gamepads & move guide', () => this.controls(() => this.modes())],
+      ['MOVE GUIDE', 'Tricks, tech & combos for every fighter', () => this.guide(() => this.modes())],
+      ['CONTROLS', 'Keybinds, gamepads & input tester', () => this.controls(() => this.modes())],
       ['SETTINGS', 'Audio, video, data', () => this.settings(() => this.modes())],
     ];
-    const list = el('div', { class: 'mode-list' }, items.map(([t, d, f], i) => btn([el('span', { class: 'mode-title' }, t), el('span', { class: 'mode-desc' }, d)], f, `mode-btn m${i % 6}`, i === 0 ? { 'data-autofocus': '' } : {})));
+    const list = el('div', { class: 'mode-list' }, items.map(([t, d, f], i) => btn([el('span', { class: 'mode-title' }, t), el('span', { class: 'mode-desc' }, d)], f, `mode-btn m${i % 7}`, i === 0 ? { 'data-autofocus': '' } : {})));
     const screen = el('div', { class: 'panel-screen modes' },
       el('div', { class: 'logo small' }, el('span', { class: 'logo-ko' }, 'K.O'), el('span', { class: 'logo-orbit' }, 'ORBIT')),
       list,
@@ -150,6 +152,7 @@ export class App {
   versus() { this.show(versusScreen(this), () => this.modes(), 'wide'); }
   story() { this.show(storyMapScreen(this), () => this.modes(), 'wide'); }
   practice() { this.show(practiceScreen(this), () => this.modes(), 'wide'); }
+  guide(back: () => void, tab: 'basics' | 'tricks' | 'fighters' = 'basics') { this.show(guideScreen(this, back, tab), back, 'wide'); }
   online() { this.show(onlineMenuScreen(this), () => { this.leaveNet(); this.modes(); }); }
   settings(back: () => void) { this.show(settingsScreen(this, back), back); }
   controls(back: () => void) { this.show(controlsScreen(this, back), back, 'wide'); }
@@ -223,10 +226,12 @@ export class App {
     const places = w.placements();
     const story = s.cfg.story;
     let storyBlock: HTMLElement | null = null;
+    let storyWon: boolean | null = null;
     if (story) {
       const human = w.fighters.find((f) => s.cfg.slots[w.fighters.indexOf(f)].type === 'HUMAN')!;
       const myPlace = places.find((p) => p.slot === human.slot)?.place ?? 99;
-      const won = myPlace === 1;
+      const won = story.goal === 'survive' ? human.eliminatedAt < 0 : myPlace === 1;
+      storyWon = won;
       if (won) {
         const secs = Math.round(w.frame / 60);
         let stars = 1;
@@ -268,7 +273,7 @@ export class App {
         matchBlock = el('div', { class: 'story-result win' }, got.map((g) => el('div', { class: 'unlock-banner' }, portraitCanvas(110, (c, wd, ht) => drawHeroCard(c, charById(g), wd, ht), 130), el('div', {}, el('b', {}, 'NEW CHALLENGER UNLOCKED!'), el('div', {}, `${charById(g).name} — ${charById(g).title}`)))));
       } else if (next) matchBlock = el('div', { class: 'muted small', style: 'margin-bottom:8px' }, `🔒 ${charById(next.id).name} unlocks in ${next.n - (saveData.matches ?? 0)} more match${next.n - (saveData.matches ?? 0) === 1 ? '' : 'es'}`);
     }
-    const winTxt = winner.length === 1 ? `${s.slotTags.get(winner[0].slot) ?? playerLabel(winner[0].slot)} WINS!` : winner.length > 1 && winner.every((f) => f.team === winner[0].team && f.team >= 0) ? 'TEAM VICTORY!' : 'DRAW!';
+    const winTxt = storyWon !== null ? (storyWon ? 'YOU WIN!' : 'DEFEATED') : winner.length === 1 ? `${s.slotTags.get(winner[0].slot) ?? playerLabel(winner[0].slot)} WINS!` : winner.length > 1 && winner.every((f) => f.team === winner[0].team && f.team >= 0) ? 'TEAM VICTORY!' : 'DRAW!';
     const online = s.kind === 'host' || s.kind === 'client';
     const actions = el('div', { class: 'row-actions' },
       story ? btn('Continue', () => { this.endSession(); this.story(); }, 'primary', { 'data-autofocus': '' })

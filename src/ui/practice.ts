@@ -15,6 +15,25 @@ export const DUMMY_MODES: { v: DummyMode; label: string }[] = [
 ];
 export const DUMMY_PCTS = [0, 30, 60, 90, 120, 150, 200].map((n) => ({ v: n, label: `${n}%` }));
 
+/** Jump straight into Practice as a given fighter (used by the Move Guide). */
+export function startPracticeAs(app: App, charId: string) {
+  st.charId = charId;
+  launchPractice(app);
+}
+
+function launchPractice(app: App) {
+  const slots: SlotConfig[] = [
+    { slot: 0, type: 'HUMAN', charId: st.charId, cpuLevel: 1, device: st.device, team: -1, name: 'You' },
+    { slot: 1, type: 'CPU', charId: st.dummyId, cpuLevel: st.level, team: -1, name: 'Dummy' },
+  ];
+  const practice: PracticeOpts = { dummy: st.dummy, level: st.level, startPct: st.startPct };
+  app.startMatch('local', { rules: { mode: 'stock', stocks: 99, timeSec: 0, hp: 150, stageId: st.stageId }, slots, practice, seed: 1 }, () => app.practice());
+  const s = app.session!;
+  s.resetPositions();
+  s.world.phase = 'play';
+  s.slotTags.set(1, 'DUMMY');
+}
+
 const st = { charId: 'nova', dummyId: 'brick', stageId: 'crater', device: 'kb1', dummy: 'stand' as DummyMode, level: 3, startPct: 0 };
 
 /** Practice / training mode setup. */
@@ -52,18 +71,7 @@ export function practiceScreen(app: App): HTMLElement {
     );
   };
   render();
-  const start = () => {
-    const slots: SlotConfig[] = [
-      { slot: 0, type: 'HUMAN', charId: st.charId, cpuLevel: 1, device: st.device, team: -1, name: 'You' },
-      { slot: 1, type: 'CPU', charId: st.dummyId, cpuLevel: st.level, team: -1, name: 'Dummy' },
-    ];
-    const practice: PracticeOpts = { dummy: st.dummy, level: st.level, startPct: st.startPct };
-    app.startMatch('local', { rules: { mode: 'stock', stocks: 99, timeSec: 0, hp: 150, stageId: st.stageId }, slots, practice, seed: 1 }, () => app.practice());
-    const s = app.session!;
-    s.resetPositions();
-    s.world.phase = 'play'; // skip countdown
-    s.slotTags.set(1, 'DUMMY');
-  };
+  const start = () => launchPractice(app);
   root.append(
     el('div', { class: 'screen-head' }, btn('◀ Back', () => app.modes(), 'small ghost'), el('h1', {}, 'PRACTICE'), btn('START ▶', start, 'primary big', { 'data-autofocus': '' })),
     body,

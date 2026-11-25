@@ -67,7 +67,7 @@ button { font: inherit; color: inherit; }
 .mode-btn { display: flex; flex-direction: column; align-items: flex-start; text-align: left; padding: 14px 22px; }
 .mode-title { font-size: 1.45rem; font-weight: 900; font-style: italic; letter-spacing: 0.05em; }
 .mode-desc { font-size: 0.85rem; color: var(--muted); font-weight: 500; }
-.mode-btn.m0 { border-left: 6px solid #ff4757; } .mode-btn.m1 { border-left: 6px solid #ffd23f; } .mode-btn.m2 { border-left: 6px solid #3ee8ff; } .mode-btn.m3 { border-left: 6px solid #2ed573; } .mode-btn.m4 { border-left: 6px solid #b06bff; } .mode-btn.m5 { border-left: 6px solid #ff8c1a; }
+.mode-btn.m0 { border-left: 6px solid #ff4757; } .mode-btn.m1 { border-left: 6px solid #ffd23f; } .mode-btn.m2 { border-left: 6px solid #3ee8ff; } .mode-btn.m3 { border-left: 6px solid #2ed573; } .mode-btn.m4 { border-left: 6px solid #b06bff; } .mode-btn.m5 { border-left: 6px solid #ff8c1a; } .mode-btn.m6 { border-left: 6px solid #ff6bcb; }
 
 /* ---------- cyclers ---------- */
 .cycler { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 2px solid transparent; cursor: default; user-select: none; min-width: 0; }
@@ -261,3 +261,25 @@ button { font: inherit; color: inherit; }
 .locked-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
 .locked-card { display: flex; gap: 10px; align-items: center; padding: 6px 10px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px dashed var(--line); }
 .locked-sil canvas { filter: drop-shadow(0 0 1px #8b7dff); }
+
+/* ---------- move guide ---------- */
+.trick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px; }
+.trick { background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.trick-head { display: flex; justify-content: space-between; align-items: center; font-size: 1.05rem; }
+.trick-how { line-height: 2; }
+.trick-tip { color: #b5ffcb; font-size: 0.85rem; }
+.lvl { color: var(--accent); letter-spacing: 2px; } .dim { opacity: 0.2; }
+.kchip { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.05; padding: 2px 8px; margin: 0 2px; border-radius: 8px; background: #2a2260; border: 1px solid rgba(255,255,255,0.25); font-weight: 800; font-size: 0.85rem; vertical-align: middle; }
+.kchip small { font-size: 0.62rem; font-weight: 600; color: var(--muted); }
+.kchip.dir { background: #1d1a3a; font-size: 1rem; padding: 3px 7px; }
+.kchip.k-attack { border-color: #ff4757; } .kchip.k-special { border-color: #3e8bff; } .kchip.k-jump { border-color: #2ed573; } .kchip.k-shield { border-color: #b06bff; } .kchip.k-smash { border-color: #ff8c1a; }
+.fighter-pick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.fighter-guide { display: grid; grid-template-columns: 240px 1fr; gap: 18px; }
+@media (max-width: 760px) { .fighter-guide { grid-template-columns: 1fr; } }
+.fg-art { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.fg-art canvas { border-radius: 16px; }
+.fg-info h2 { margin: 0; font-style: italic; } .fg-info h3 { margin: 12px 0 6px; color: var(--accent); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; }
+.ratings { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.85rem; } .ratings b { color: var(--accent); letter-spacing: 1px; }
+.spec-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px; }
+.spec { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 6px 10px; border-radius: 10px; background: rgba(255,255,255,0.04); }
+.combo-list { line-height: 2.1; padding-left: 20px; margin: 0; }

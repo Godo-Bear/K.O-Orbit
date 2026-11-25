@@ -28,6 +28,7 @@ export const STORY: StoryStage[] = [
     rules: { mode: 'stock', stocks: 2, timeSec: 0, hp: 150, stageId: 'crater' },
     enemies: [{ charId: 'brick', level: 2 }],
     stars: { damage: 60, time: 90 },
+    reward: 'brick',
   },
   {
     id: 's2', chapter: 'Chapter 1', title: 'The Swarm', map: { x: 22, y: 58 },
@@ -37,6 +38,7 @@ export const STORY: StoryStage[] = [
     playerStocks: 2,
     enemies: [{ charId: 'zephyr', level: 2, team: 1 }, { charId: 'nova', level: 2, team: 1 }, { charId: 'volt', level: 2, team: 1 }],
     stars: { damage: 90, time: 75 },
+    reward: 'zephyr',
   },
   {
     id: 's3', chapter: 'Chapter 2', title: 'Trial by Fire', map: { x: 36, y: 72 },
@@ -54,6 +56,7 @@ export const STORY: StoryStage[] = [
     rules: { mode: 'time', stocks: 0, timeSec: 90, hp: 150, stageId: 'nebula', hazard: 'meteor' },
     enemies: [{ charId: 'brick', level: 4 }, { charId: 'ember', level: 4 }],
     stars: { damage: 120, time: 90 },
+    reward: 'kaida',
   },
   {
     id: 's5', chapter: 'Chapter 3', title: 'Frozen Sovereign', map: { x: 62, y: 70 },
@@ -71,6 +74,7 @@ export const STORY: StoryStage[] = [
     rules: { mode: 'stock', stocks: 2, timeSec: 0, hp: 150, stageId: 'canopy' },
     enemies: [{ charId: 'nova', level: 5 }, { charId: 'zephyr', level: 5 }, { charId: 'volt', level: 5 }, { charId: 'brick', level: 5 }, { charId: 'glacia', level: 5 }],
     stars: { damage: 140, time: 150 },
+    reward: 'seraphine',
   },
   {
     id: 's7', chapter: 'Chapter 4', title: 'The Oathsworn', map: { x: 84, y: 66 },
@@ -115,3 +119,24 @@ export function recordClear(stage: StoryStage, stars: number): string | null {
 }
 
 export function totalStars() { return Object.values(save.story.cleared).reduce((a, b) => a + b, 0); }
+
+/** Fighters unlocked by finishing matches in any mode (Versus, Online, Story, Practice doesn't count). */
+export const MATCH_UNLOCKS: { id: string; n: number }[] = [{ id: 'pip', n: 3 }, { id: 'bolt9', n: 6 }];
+
+/** Count a finished match; returns any fighters unlocked by it. */
+export function recordMatch(): string[] {
+  save.matches = (save.matches ?? 0) + 1;
+  const got: string[] = [];
+  for (const u of MATCH_UNLOCKS) if (save.matches >= u.n && !save.unlocked.includes(u.id)) { save.unlocked.push(u.id); got.push(u.id); }
+  persist();
+  return got;
+}
+
+/** Human-readable hint for how to unlock a fighter. */
+export function unlockHint(id: string): string {
+  const st = STORY.findIndex((x) => x.reward === id);
+  if (st >= 0) return `Clear Story stage ${st + 1}: ${STORY[st].title}`;
+  const m = MATCH_UNLOCKS.find((u) => u.id === id);
+  if (m) return `Finish ${m.n} matches (${Math.min(m.n, save.matches ?? 0)}/${m.n})`;
+  return '';
+}

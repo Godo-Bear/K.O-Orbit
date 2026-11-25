@@ -64,6 +64,25 @@ scripts/headless.ts  simulation smoke tests
 - **Practice:** a training dummy that can stand, shield, crouch, jump or fight back as a level 1–9 CPU. It has a combo counter, damage readouts, a frame readout, position reset and dummy % presets, and hitboxes on F4.
 - **Online:** room-code play for up to 10 players.
 
+## Unlocking fighters
+
+You start with **Nova** and **Volt**. The other ten unlock as you play:
+
+| Fighter | How to unlock |
+|---|---|
+| Granite | Clear Story stage 1 |
+| Zephyr | Clear Story stage 2 |
+| Ember | Clear Story stage 3 |
+| Kaida | Clear Story stage 4 |
+| Glacia | Clear Story stage 5 |
+| Seraphine | Clear Story stage 6 |
+| Rook | Clear Story stage 7 |
+| Omega | Clear Story stage 8 |
+| Pip | Finish 3 matches (Versus, Online or Story) |
+| Bolt-9 | Finish 6 matches |
+
+Settings → Unlock All Fighters unlocks everything, and Reset Story Progress locks them again.
+
 ## Character art
 
 Fighters can render with your **illustrated character art** (Settings → Fighter art) or as an animated vector rig.

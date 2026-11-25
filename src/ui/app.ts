@@ -12,7 +12,8 @@ import { CHARACTERS, charById } from '../sim/characters';
 import { STAGES } from '../sim/stages';
 import type { SlotConfig } from '../sim/types';
 import type { NetClient } from '../net/client';
-import { recordClear, type StoryStage } from '../story/campaign';
+import { recordClear, recordMatch, MATCH_UNLOCKS, type StoryStage } from '../story/campaign';
+import { save as saveData } from '../core/save';
 import { el, btn, nav, toast, portraitCanvas, applyUiZoom, cycler } from './dom';
 import { versusScreen } from './versus';
 import { storyMapScreen } from './story';
@@ -257,6 +258,16 @@ export class App {
       );
     });
     const winner = places.filter((p) => p.place === 1).map((p) => w.fighters.find((f) => f.slot === p.slot)!);
+    // match-count unlocks (any finished match except practice)
+    let matchBlock: HTMLElement | null = null;
+    if (!s.cfg.practice) {
+      const got = recordMatch();
+      const next = MATCH_UNLOCKS.find((u) => !saveData.unlocked.includes(u.id));
+      if (got.length) {
+        synth.unlockJingle(); toast(`🔓 ${got.map((g) => charById(g).name).join(', ')} unlocked!`, 4000);
+        matchBlock = el('div', { class: 'story-result win' }, got.map((g) => el('div', { class: 'unlock-banner' }, portraitCanvas(110, (c, wd, ht) => drawHeroCard(c, charById(g), wd, ht), 130), el('div', {}, el('b', {}, 'NEW CHALLENGER UNLOCKED!'), el('div', {}, `${charById(g).name} — ${charById(g).title}`)))));
+      } else if (next) matchBlock = el('div', { class: 'muted small', style: 'margin-bottom:8px' }, `🔒 ${charById(next.id).name} unlocks in ${next.n - (saveData.matches ?? 0)} more match${next.n - (saveData.matches ?? 0) === 1 ? '' : 'es'}`);
+    }
     const winTxt = winner.length === 1 ? `${s.slotTags.get(winner[0].slot) ?? playerLabel(winner[0].slot)} WINS!` : winner.length > 1 && winner.every((f) => f.team === winner[0].team && f.team >= 0) ? 'TEAM VICTORY!' : 'DRAW!';
     const online = s.kind === 'host' || s.kind === 'client';
     const actions = el('div', { class: 'row-actions' },
@@ -272,6 +283,7 @@ export class App {
         winner.slice(0, 3).map((f) => el('div', { class: 'win-hero', style: `--pc:${PLAYER_COLORS[f.slot]}` }, portraitCanvas(200, (c, wd, ht) => drawHeroCard(c, f.char, wd, ht, w.frame), 230))),
         el('h1', { class: 'win-title', style: winner[0] ? `color:${PLAYER_COLORS[winner[0].slot]}` : '' }, winTxt)),
       storyBlock,
+      matchBlock,
       el('div', { class: 'table-wrap' }, el('table', { class: 'results-table' },
         el('thead', {}, el('tr', {}, ['#', 'Fighter', 'KOs', 'Falls', 'SDs', 'Dealt', 'Taken'].map((h) => el('th', {}, h)))),
         el('tbody', {}, rows))),

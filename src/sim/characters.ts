@@ -121,7 +121,7 @@ export const CHARACTERS: CharDef[] = [];
   // airborne quake stomp spike
   m.dspec.hitboxes.push(hb(9, 30, 0, 0, 34, 14, 270, 30, 80, { g: 2, lag: 1.3 }));
   CHARACTERS.push({
-    id: 'brick', name: 'Granite', title: 'The Walking Quarry', starter: true,
+    id: 'brick', name: 'Granite', title: 'The Walking Quarry', starter: false,
     blurb: 'A seven-foot golem of weathered rock and pulsing magma. Armored charges and earth-shaking stomps.',
     stats: stats({ walk: 2.6, run: 5.8, air: 2.7, airAccel: 0.26, gravity: 0.72, fall: 13, fastFall: 19, jump: 16.5, shortHop: 10.5, djump: 15, weight: 135, traction: 0.8, size: 1.24, power: 1.0, jumpSquat: 4 }),
     visual: vis({ body: '#a39887', accent: '#ff6a1a', skin: '#a39887', dark: '#6e655a', head: 'square', accessory: 'shoulders', bulk: 1.6, fx: 'hit', glove: '#9a8f7e', boot: '#857b6d', hair: '#5d554b', eye: '#ffe14a', cape: null, emblem: 'gear', shoulder: 22, waist: 15, glow: '#ff8a2a', armor: '#8c8273', cracks: '#ff7a1f', fist: 1.7 }),
@@ -153,7 +153,7 @@ export const CHARACTERS: CharDef[] = [];
     update: (f, _w, fr) => { if (!f.grounded && fr < 30) f.vy = Math.min(f.vy, 1.5); },
   };
   CHARACTERS.push({
-    id: 'zephyr', name: 'Zephyr', title: 'The Drifting Gale', starter: true,
+    id: 'zephyr', name: 'Zephyr', title: 'The Drifting Gale', starter: false,
     blurb: 'Light and blindingly fast with four jumps, wind blades and a perfect counter.',
     stats: stats({ walk: 4.2, run: 9, air: 4, airAccel: 0.46, gravity: 0.6, fall: 10.5, fastFall: 16, jump: 16.5, shortHop: 10.5, djump: 14.5, jumps: 4, weight: 78, traction: 0.5, size: 0.9 }),
     visual: vis({ body: '#7fe0b8', accent: '#c9d3dc', skin: '#f3d2b8', dark: '#2e8c88', head: 'round', accessory: 'scarf', bulk: 0.82, fx: 'wind', glove: '#2e8c88', boot: '#3aa89a', hair: '#efe4c8', eye: '#2f8f8c', cape: '#ff5fa8', emblem: 'wind', shoulder: 12.5, waist: 8.5, glow: '#a8fff0', armor: '#c9d3dc', hips: 2 }),
@@ -382,7 +382,7 @@ export const CHARACTERS: CharDef[] = [];
     update: (f, _w, fr) => { if (!f.grounded && fr < 28) f.vy = Math.min(f.vy, 1.2); },
   };
   CHARACTERS.push({
-    id: 'kaida', name: 'Kaida', title: 'The Tide Dancer', starter: true,
+    id: 'kaida', name: 'Kaida', title: 'The Tide Dancer', starter: false,
     blurb: 'A graceful water martial artist with a long-reaching water whip, a rushing tide dash and a reflecting bubble shield.',
     stats: stats({ walk: 4, run: 8.6, air: 3.8, airAccel: 0.42, gravity: 0.6, fall: 10.5, fastFall: 16, jump: 17, weight: 86, size: 0.98 }),
     visual: vis({ body: '#2aa6a6', accent: '#ff7a7a', skin: '#e8b48c', dark: '#e6f4f6', head: 'round', accessory: 'scarf', bulk: 0.9, fx: 'water', glove: '#e8b48c', boot: '#e8b48c', hair: '#1d2a55', eye: '#1d2a55', cape: '#ff7a7a', emblem: 'wind', shoulder: 13, waist: 9, glow: '#8fdcff' }),
@@ -420,7 +420,7 @@ export const CHARACTERS: CharDef[] = [];
     },
   };
   CHARACTERS.push({
-    id: 'pip', name: 'Pip', title: 'The Pocket Mage', starter: true,
+    id: 'pip', name: 'Pip', title: 'The Pocket Mage', starter: false,
     blurb: 'A tiny wizard on a flying spellbook. Arcane bolts, blink teleports, and a giant book dropped from the sky.',
     stats: stats({ walk: 3, run: 6.2, air: 3.6, airAccel: 0.4, gravity: 0.5, fall: 9, fastFall: 14, jump: 16, djump: 15, jumps: 3, weight: 72, size: 0.86 }),
     visual: vis({ body: '#5a3a9a', accent: '#ffd23f', skin: '#f0c4a0', dark: '#2a3a7a', head: 'round', accessory: 'antenna', bulk: 0.85, fx: 'arcane', glove: '#f0c4a0', boot: '#6b4423', hair: '#ffffff', eye: '#1a1a2e', cape: null, emblem: 'star', shoulder: 13, waist: 11, glow: '#3ff0ff' }),
@@ -454,7 +454,7 @@ export const CHARACTERS: CharDef[] = [];
     update: (f, _w, fr) => { if (!f.grounded && fr < 22) { f.vy *= 0.5; f.vx *= 0.9; } },
   };
   CHARACTERS.push({
-    id: 'seraphine', name: 'Seraphine', title: 'The Solar Saint', starter: true,
+    id: 'seraphine', name: 'Seraphine', title: 'The Solar Saint', starter: false,
     blurb: 'A radiant winged warrior. Her golden spear reaches far, her wings give her three jumps, and her solar flare burns everything close.',
     stats: stats({ walk: 3.3, run: 7, air: 3.6, airAccel: 0.36, gravity: 0.55, fall: 10, fastFall: 15.5, jump: 17, djump: 15, jumps: 3, weight: 100, size: 1.08 }),
     visual: vis({ body: '#f4f4f8', accent: '#f2b51b', skin: '#f3d2b8', dark: '#2a4fb0', head: 'round', accessory: 'crystal', bulk: 1, fx: 'solar', glove: '#2a4fb0', boot: '#f4f4f8', hair: '#ffd34d', eye: '#2f8f6c', cape: null, emblem: 'star', shoulder: 14, waist: 10, glow: '#ffd34d' }),
@@ -495,7 +495,7 @@ export const CHARACTERS: CharDef[] = [];
     update: (f, _w, fr) => { if (!f.grounded && fr < 26) f.vy = Math.min(f.vy, 1); },
   };
   CHARACTERS.push({
-    id: 'bolt9', name: 'Bolt-9', title: 'The Scrap Titan', starter: true,
+    id: 'bolt9', name: 'Bolt-9', title: 'The Scrap Titan', starter: false,
     blurb: 'A rusty heavyweight robot. Rocket fists, a magnet that drags foes in, and an armored overheat blast.',
     stats: stats({ walk: 2.4, run: 5.4, air: 2.6, airAccel: 0.25, gravity: 0.75, fall: 13.5, fastFall: 20, jump: 16, shortHop: 10, djump: 14, weight: 142, traction: 0.85, size: 1.22, jumpSquat: 4 }),
     visual: vis({ body: '#e07a2a', accent: '#5cff7a', skin: '#e8d6b0', dark: '#4a3a30', head: 'square', accessory: 'shoulders', bulk: 1.5, fx: 'hit', glove: '#7a7a80', boot: '#2a2a2e', hair: '#4a3a30', eye: '#5cff7a', cape: null, emblem: 'gear', shoulder: 22, waist: 15, glow: '#5cff7a', armor: '#e8d6b0' }),

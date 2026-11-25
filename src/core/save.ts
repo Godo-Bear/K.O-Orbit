@@ -27,6 +27,7 @@ export interface SaveData {
   settings: Settings;
   story: StoryProgress;
   unlocked: string[]; // unlocked fighter ids (beyond starters)
+  matches?: number; // finished matches (for match-count unlocks)
   kb: KeyScheme[]; // keyboard schemes (KB1, KB2)
   pad: PadScheme; // shared gamepad mapping (standard layout)
 }
@@ -118,6 +119,7 @@ export function persist() {
 export function resetProgress() {
   save.story = { cleared: {} };
   save.unlocked = [];
+  save.matches = 0;
   persist();
 }
 

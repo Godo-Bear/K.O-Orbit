@@ -7,7 +7,7 @@ import { THEMES } from '../render/background';
 import { stageArt, drawPainting } from '../render/stageArt';
 import { drawHeroCard } from '../render/rig';
 import type { MatchRules, SlotConfig } from '../sim/types';
-import { isCharUnlocked } from '../story/campaign';
+import { isCharUnlocked, unlockHint } from '../story/campaign';
 import { el, btn, cycler, toggle, toast, portraitCanvas } from './dom';
 import type { App } from './app';
 
@@ -145,6 +145,15 @@ export function versusScreen(app: App): HTMLElement {
     stageRow,
     el('div', { class: 'section-label' }, 'Fighters (P1–P10)'),
     slotsWrap,
+    (() => {
+      const locked = CHARACTERS.filter((c) => !isCharUnlocked(c.id));
+      if (!locked.length) return el('div', {});
+      return el('div', {},
+        el('div', { class: 'section-label' }, `Locked fighters (${CHARACTERS.length - locked.length}/${CHARACTERS.length} unlocked)`),
+        el('div', { class: 'locked-grid' }, locked.map((c) => el('div', { class: 'locked-card' },
+          el('div', { class: 'locked-sil' }, portraitCanvas(56, (ctx, w, h) => { drawHeroCard(ctx, c, w, h, 0, false); ctx.globalCompositeOperation = 'source-in'; ctx.fillStyle = '#1a1440'; ctx.fillRect(0, 0, w, h); }, 64)),
+          el('div', {}, el('b', {}, `🔒 ${c.name}`), el('div', { class: 'muted small' }, unlockHint(c.id)))))));
+    })(),
   );
   return root;
 }

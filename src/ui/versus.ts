@@ -4,6 +4,7 @@ import { synth } from '../audio/synth';
 import { CHARACTERS, charById } from '../sim/characters';
 import { STAGES, type StageDef } from '../sim/stages';
 import { THEMES } from '../render/background';
+import { stageArt, drawPainting } from '../render/stageArt';
 import { drawHeroCard } from '../render/rig';
 import type { MatchRules, SlotConfig } from '../sim/types';
 import { isCharUnlocked } from '../story/campaign';
@@ -23,6 +24,8 @@ const state = {
 export function stagePreview(st: StageDef, w: number, h: number) {
   return portraitCanvas(w, (ctx) => {
     const H = h;
+    const art = stageArt(st.id);
+    if (art) { ctx.save(); drawPainting(ctx, art, w, H, 0, 0, 0, false, false); ctx.restore(); return; }
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, st.sky[0]); g.addColorStop(0.6, st.sky[1]); g.addColorStop(1, st.sky[2]);
     ctx.fillStyle = g; ctx.fillRect(0, 0, w, H);

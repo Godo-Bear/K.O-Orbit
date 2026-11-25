@@ -1,5 +1,6 @@
 import { Rng } from '../core/rng';
 import type { StageDef } from '../sim/stages';
+import { stageArt, drawPainting } from './stageArt';
 
 export interface Theme { top: string; body1: string; body2: string; soft: string; glow: string; line: string; fog: string }
 
@@ -84,6 +85,8 @@ export class Background {
 
   /** Far group: sky, star field, planets, distant silhouettes — vector-drawn each frame (GPU-cheap). */
   private drawFar(ctx: CanvasRenderingContext2D, W: number, H: number, cx: number, cy: number, zoom: number, t: number) {
+    const painting = stageArt(this.stage.id);
+    if (painting) { drawPainting(ctx, painting, W, H, cx, cy, zoom); return; }
     const st = this.stage;
     // low-res atmosphere: sky + glows, re-baked every other frame at 1/4 resolution, upscaled with smoothing
     const aw = Math.max(240, Math.round(W / 4)), ah = Math.max(135, Math.round(H / 4));
@@ -119,7 +122,7 @@ export class Background {
 
   private drawMid(ctx: CanvasRenderingContext2D, W: number, H: number, cx: number, cy: number, zoom: number, t: number) {
     const L = (k: number) => this.layer(ctx, W, H, cx, cy, zoom, k);
-    paintMid(ctx, this.stage.theme, this.mid, L, t);
+    if (!stageArt(this.stage.id)) paintMid(ctx, this.stage.theme, this.mid, L, t);
     // ambient motes (snow, embers, leaves, dust, sparks)
     L(0.7);
     const th = this.stage.theme;
@@ -140,6 +143,7 @@ export class Background {
 
   /** Foreground silhouettes, drawn after fighters (parallax > 1) for depth. Kept low so it never hides play. */
   drawForeground(ctx: CanvasRenderingContext2D, W: number, H: number, cx: number, cy: number, zoom: number, t: number) {
+    if (stageArt(this.stage.id)) return; // the painting already provides depth
     const k = 1.25;
     const z = zoom * k;
     ctx.setTransform(z, 0, 0, z, W / 2 - cx * k * z, H / 2 - cy * k * z);

@@ -2,7 +2,7 @@ import type { Fx } from '../sim/types';
 
 /** Pre-allocated particle pool — no allocations during gameplay. */
 export interface Particle {
-  active: boolean; kind: 0 | 1 | 2 | 3 | 4; // 0 spark, 1 puff, 2 ring, 3 beam, 4 star
+  active: boolean; kind: 0 | 1 | 2 | 3 | 4 | 5; // 0 spark, 1 puff, 2 ring, 3 beam, 4 star, 5 impact lines
   x: number; y: number; vx: number; vy: number;
   life: number; max: number; size: number; grow: number; rot: number;
   color: string; drag: number; grav: number;
@@ -93,6 +93,18 @@ export class Effects {
           const w = p.size * a;
           ctx.beginPath(); ctx.moveTo(0, -w * 0.15); ctx.lineTo(2400, -w); ctx.lineTo(2400, w); ctx.lineTo(0, w * 0.15); ctx.fill();
           ctx.restore();
+          break;
+        }
+        case 5: { // manga impact lines radiating from the hit point
+          const a0 = p.rot * 3.1;
+          ctx.strokeStyle = p.color; ctx.lineCap = 'round';
+          const prog = 1 - a;
+          for (let i = 0; i < 14; i++) {
+            const ang = a0 + (i / 14) * Math.PI * 2 + (i % 2) * 0.12;
+            const r0 = p.size * (0.35 + prog * 0.9), r1 = p.size * (0.9 + prog * 1.1 + (i % 3) * 0.25);
+            ctx.lineWidth = (i % 2 ? 3 : 6) * a;
+            ctx.beginPath(); ctx.moveTo(p.x + Math.cos(ang) * r0, p.y + Math.sin(ang) * r0); ctx.lineTo(p.x + Math.cos(ang) * r1, p.y + Math.sin(ang) * r1); ctx.stroke();
+          }
           break;
         }
         case 4: {

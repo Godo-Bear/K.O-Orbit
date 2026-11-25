@@ -71,10 +71,25 @@ export function computePose(f: Fighter, t: number): Pose {
       p.lean = Math.sin(t * 0.1) * 0.3; p.armF = [0.2, 0.2]; p.armB = [-0.2, 0.2]; p.rot = 0; break;
     case 'spotdodge': p.hipY = 10; p.lean = -0.3; break;
     case 'roll': case 'tech': case 'ledgeroll': p.rot = (sf / 26) * Math.PI * 2 * f.facing; p.hipY = 18; p.legF = [1.4, -2]; p.legB = [1.1, -2]; p.armF = [1.5, 1.5]; break;
-    case 'hitstun':
-      p.lean = -0.4; p.armF = [2.4, -0.4]; p.armB = [-2.0, -0.3]; p.legF = [0.7, -0.4]; p.legB = [-0.6, -0.2];
-      if (f.tumble && !f.grounded) p.rot = sf * 0.3 * -f.facing;
+    case 'hitstun': {
+      if (f.hitlag > 0 || sf < 4) { // flinch on impact: head snapped back, arms up, knees buckled
+        p.lean = -0.6; p.armF = [2.3, 1.4]; p.armB = [1.7, 1.6]; p.legF = [0.55, -1.0]; p.legB = [-0.3, -0.7]; p.hipY = 7;
+        break;
+      }
+      // launched: limbs drag behind the direction of travel, with a frantic flail
+      const vx = (f.kvx + f.vx) * f.facing, vy = f.kvy + f.vy;
+      const sp = Math.hypot(vx, vy);
+      const w = Math.min(1, sp / 14);
+      const tr = Math.atan2(-vx, -vy);
+      const fl = Math.sin(sf * 0.55) * 0.35 * (1 - w * 0.5);
+      p.armF = [lerp(2.4, tr + 0.35, w) + fl, 0.25 - fl * 0.5];
+      p.armB = [lerp(-2.0, tr - 0.3, w) - fl, 0.3 + fl * 0.5];
+      p.legF = [lerp(0.7, tr + 0.25, w * 0.8) - fl * 0.6, -0.35];
+      p.legB = [lerp(-0.6, tr - 0.2, w * 0.8) + fl * 0.6, -0.5];
+      p.lean = -0.3 - w * 0.35;
+      if (f.tumble && !f.grounded) p.rot = sf * (0.14 + Math.min(0.32, sp * 0.018)) * -f.facing;
       break;
+    }
     case 'knockdown': p.rot = -Math.PI / 2 * f.facing; p.hipY = -10; break;
     case 'getup': p.rot = -Math.PI / 2 * f.facing * Math.max(0, 1 - sf / 14); break;
     case 'ledge': p.armF = [2.7, 0]; p.armB = [2.5, 0]; p.legF = [0.15, -0.2]; p.legB = [-0.05, -0.3]; p.lean = 0.15; break;
@@ -103,15 +118,34 @@ function attackPose(f: Fighter, p: Pose, _t: number) {
   else if (mf <= aim.e) k = 1;
   else k = Math.max(0, 1 - (mf - aim.e) / Math.max(6, (m.total - aim.e) * 0.7));
   if (f.charging) k = -1 + Math.sin(f.charge * 0.6) * 0.06;
-  if (k < 0) p.squash = 1 + k * 0.06; // anticipation crouch
-  else if (k === 1) p.squash = 1.04; // follow-through stretch
-  const a = k >= 0 ? lerp(limb.startsWith('leg') ? 0.1 : 0.3, aim.ang, k) : aim.ang + k * 1.4 * (aim.ang > 0 ? 1 : -1);
-  const ext: [number, number] = [a, k >= 0 ? lerp(0.6, 0.02, k) * (limb.startsWith('leg') ? -1 : 1) : 1.1];
+  const leg = limb.startsWith('leg');
+  const rest = leg ? 0.1 : 0.3;
+  const sgn = aim.ang >= 0 ? 1 : -1;
+  const up = Math.abs(aim.ang) > 2.2, down = Math.abs(aim.ang) < 0.5;
+  let a: number;
+  if (k < 0) { // deep wind-up: pull back, crouch & coil away from the strike
+    a = aim.ang + k * 1.9 * sgn;
+    p.squash = 1 + k * 0.1;
+    p.lean = up ? -k * 0.15 : k * 0.3;
+    p.hipY = -k * 6;
+  } else { // strike + follow-through: the limb sails past the target, then settles back
+    const over = Math.sin((1 - k) * Math.PI) * 0.55 * sgn;
+    a = lerp(rest, aim.ang + over, k);
+    p.squash = k === 1 ? (f.hitlag > 0 ? 0.94 : 1.05) : 1;
+    // whole body drives into the attack
+    if (up) { p.lean = -0.25 * k; p.hipY = -5 * k; }
+    else if (down) { p.lean = 0.35 * k; p.hipY = 10 * k; }
+    else p.lean = 0.38 * k * Math.sign(Math.sin(aim.ang) || 1);
+  }
+  const ext: [number, number] = [a, k >= 0 ? lerp(0.6, 0.02, k) * (leg ? -1 : 1) : 1.2 * (leg ? -1 : 1)];
+  // counter-balance: the off arm swings the other way
+  if (limb === 'armF') p.armB = [-a * 0.45 - 0.2, 0.7];
+  if (limb === 'legF' || limb === 'legB') { p.armF = [1.3 - Math.max(0, k) * 0.6, 1.2]; p.armB = [-1.1 * Math.max(0.3, k), 0.6]; }
   switch (limb) {
-    case 'armF': p.armF = ext; p.lean = k * 0.25 * Math.cos(aim.ang); break;
+    case 'armF': p.armF = ext; break;
     case 'armB': p.armB = ext; break;
-    case 'legF': p.legF = ext; p.lean = -k * 0.2; if (f.grounded) p.legB = [-0.25, -0.1]; break;
-    case 'legB': p.legB = ext; p.lean = k * 0.35; break;
+    case 'legF': p.legF = ext; p.lean -= Math.max(0, k) * 0.45; if (f.grounded) p.legB = [-0.3, -0.15]; break;
+    case 'legB': p.legB = ext; p.lean = Math.max(0, k) * 0.5; break;
     case 'both': p.armF = ext; p.armB = [-Math.abs(a) * Math.sign(a || 1), ext[1]]; if (aim.ang > 2) p.armB = [a - 0.4, 0.1]; p.legF = [0.8 * Math.max(0, k), -0.5]; p.legB = [-0.8 * Math.max(0, k), -0.5]; break;
     case 'body': p.lean = 0.6 * Math.max(0, k); p.armF = [2.0, 0.1]; p.armB = [-1.2, 0.3]; break;
     case 'spin': p.rot = Math.max(0, k) * ((mf - aim.s) / Math.max(1, aim.e - aim.s)) * Math.PI * 2 * f.facing; p.armF = [1.6, 0.1]; p.armB = [-1.6, 0.1]; p.legF = [0.8, -0.6]; p.legB = [-0.8, -0.6]; break;

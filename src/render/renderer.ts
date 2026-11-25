@@ -99,6 +99,7 @@ export class Renderer {
           } else fx.sparks(e.x, e.y, Math.min(26, 6 + p / 8), 6 + p / 18, c);
           fx.ring(e.x, e.y, 10, 2 + p / 40, 14, c[1]);
           fx.spawn(4, e.x, e.y, 0, 0, 8, 18 + p / 6, '#ffffff', -1, 1); // impact flash
+          if (p > 60 && this.intensity > 0) fx.spawn(5, e.x, e.y, 0, 0, 12, 40 + p * 0.35, p > 130 ? '#fff6c2' : '#ffffff', 0, 1, 0, Math.random() * 6);
           if (p > 120) { fx.ring(e.x, e.y, 20, 6, 22, '#ffffff'); for (let i = 0; i < 4; i++) fx.spawn(4, e.x, e.y, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12, 30, 14, c[0], 0, 0.93); }
           break;
         }
@@ -278,6 +279,11 @@ export class Renderer {
       cg.addColorStop(0, 'rgba(255,240,160,0.55)'); cg.addColorStop(1, 'rgba(255,200,60,0)');
       ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(x, y - f.H / 2, r, 0, Math.PI * 2); ctx.fill();
       if (this.t % 3 === 0) { const a = Math.random() * Math.PI * 2; this.effects.spawn(0, x + Math.cos(a) * r, y - f.H / 2 + Math.sin(a) * r, -Math.cos(a) * 5, -Math.sin(a) * 5, 12, 3, '#fff3a0', 0, 0.95); }
+    }
+    // launch smoke trail
+    const lsp = Math.hypot(f.kvx, f.kvy);
+    if (f.state === 'hitstun' && lsp > 10 && f.hitlag === 0 && !opts.paused && this.t % 2 === 0 && this.intensity > 0) {
+      this.effects.spawn(1, x, y - f.H * 0.5, -f.kvx * 0.05, -f.kvy * 0.05, 26, 10 + lsp * 0.6, lsp > 20 ? 'rgba(255,240,220,0.75)' : 'rgba(225,225,235,0.6)', 0.6, 0.94);
     }
     // dash / launch speed lines
     const sp = Math.abs(f.vx + f.kvx);

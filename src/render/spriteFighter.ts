@@ -94,6 +94,7 @@ export function drawSpriteFighter(ctx: CanvasRenderingContext2D, f: Fighter, x: 
   const H = f.H * fr.height;
   const sf = f.stateFrame;
   let rot = 0, sx = 1, sy = 1, ox = 0, oy = 0;
+  let stretch = 0, sang = 0; // velocity smear (launches)
   let pivotY = -H * 0.45; // rotate around the body centre
   switch (f.state) {
     case 'idle': case 'respawn': { const b = Math.sin(t * 0.06 + f.slot) * 0.014; sy = 1 + b; sx = 1 - b * 0.6; break; }
@@ -117,8 +118,18 @@ export function drawSpriteFighter(ctx: CanvasRenderingContext2D, f: Fighter, x: 
     case 'dizzy': rot = Math.sin(t * 0.1) * 0.16; break;
     case 'spotdodge': alpha *= sf > 2 && sf < 18 ? 0.45 : 1; sx = 0.92; break;
     case 'roll': case 'tech': case 'ledgeroll': rot = (sf / 26) * Math.PI * 2 * (f.state === 'roll' ? 1 : 1); sy = 0.82; pivotY = -H * 0.35; break;
-    case 'hitstun': rot = f.tumble && !f.grounded ? -sf * 0.3 : -0.32; sx = 0.94; sy = 1.04; break;
-    case 'knockdown': rot = -Math.PI / 2; oy = H * 0.3; break;
+    case 'hitstun': {
+      if (f.hitlag > 0 || sf < 4) { rot = -0.45; sx = 0.86; sy = 1.1; ox = -8; break; } // flinch
+      const sp = Math.hypot(f.kvx + f.vx, f.kvy + f.vy);
+      rot = f.tumble && !f.grounded ? -sf * (0.14 + Math.min(0.32, sp * 0.018)) : -0.32 - Math.min(0.3, sp * 0.02);
+      if (sp > 9) { stretch = Math.min(0.28, (sp - 9) * 0.02); sang = Math.atan2(f.kvy + f.vy, (f.kvx + f.vx) * f.facing); }
+      break;
+    }
+    case 'knockdown': {
+      rot = -Math.PI / 2; oy = H * 0.3;
+      if (sf < 12) { const b = Math.abs(Math.sin(sf * 0.5)) * (1 - sf / 12); oy -= b * 16; sy = 1 - b * 0.12; sx = 1 + b * 0.12; }
+      break;
+    }
     case 'getup': rot = -Math.PI / 2 * Math.max(0, 1 - sf / 14); break;
     case 'ledge': rot = 0.22; oy = -H * 0.08; break;
     case 'ledgeclimb': sy = 0.84; break;
@@ -144,6 +155,7 @@ export function drawSpriteFighter(ctx: CanvasRenderingContext2D, f: Fighter, x: 
       break;
     }
   }
+  if (f.state === 'attack' && f.hitlag > 0) { sx *= 1.07; sy *= 0.94; ox += 4; } // impact: hit lands
   if (rig) {
     if (f.state === 'attack') { rot *= 0.35; ox *= 0.6; }
     if (f.state === 'walk' || f.state === 'run' || f.state === 'dash') rot *= 0.5;
@@ -154,6 +166,7 @@ export function drawSpriteFighter(ctx: CanvasRenderingContext2D, f: Fighter, x: 
   ctx.translate(x, y);
   ctx.scale(f.facing * fr.faces, 1);
   ctx.translate(ox, oy);
+  if (stretch) { ctx.translate(0, pivotY); ctx.rotate(sang); ctx.scale(1 + stretch, 1 - stretch * 0.55); ctx.rotate(-sang); ctx.translate(0, -pivotY); }
   if (rot) { ctx.translate(0, pivotY); ctx.rotate(rot); ctx.translate(0, -pivotY); }
   if (sx !== 1 || sy !== 1) ctx.scale(sx, sy);
   // soft contact shadow under the sprite

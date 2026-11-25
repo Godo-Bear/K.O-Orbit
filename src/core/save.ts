@@ -112,8 +112,12 @@ function load(): SaveData {
 export const save: SaveData = load();
 queueMicrotask(() => persist()); // write back any migration
 
+/** Called after every local save (cloud sync hooks in here). */
+export const persistHooks: (() => void)[] = [];
+
 export function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(save)); } catch { /* storage unavailable */ }
+  for (const h of persistHooks) h();
 }
 
 export function resetProgress() {

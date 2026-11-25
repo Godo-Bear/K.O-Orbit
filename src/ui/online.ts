@@ -8,6 +8,7 @@ import { drawPortrait } from '../render/rig';
 import type { MatchRules, SlotConfig } from '../sim/types';
 import { NetClient, NET_ERROR_TEXT, randomRoomCode, type NetError } from '../net/client';
 import { isCharUnlocked } from '../story/campaign';
+import { currentUser } from '../net/account';
 import { el, btn, cycler, toast, portraitCanvas, mount } from './dom';
 import { stagePreview } from './versus';
 import type { App } from './app';
@@ -18,7 +19,7 @@ interface LobbyState { players: LobbyPlayer[]; stageId: string; mode: MatchRules
 const local = { device: 'kb1', charId: 'nova' };
 
 export function onlineMenuScreen(app: App): HTMLElement {
-  const nameIn = el('input', { type: 'text', maxlength: '16', value: save.settings.playerName, 'data-nav': '', class: 'text-in' }) as HTMLInputElement;
+  const nameIn = el('input', { type: 'text', maxlength: '16', value: currentUser() ?? save.settings.playerName, 'data-nav': '', class: 'text-in', disabled: !!currentUser() }) as HTMLInputElement;
   const codeIn = el('input', { type: 'text', maxlength: '8', placeholder: 'ROOM CODE', 'data-nav': '', class: 'text-in code' }) as HTMLInputElement;
   codeIn.addEventListener('input', () => { codeIn.value = codeIn.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
   const status = el('div', { class: 'net-status' });

@@ -22,6 +22,8 @@ import { settingsScreen, controlsScreen, controlsGuide } from './options';
 import { practiceScreen, DUMMY_MODES, DUMMY_PCTS } from './practice';
 import { heroLineup } from './keyart';
 import { guideScreen } from './guide';
+import { accountScreen } from './account';
+import { currentUser, restoreSession, onAccountChange } from '../net/account';
 import { TouchControls } from './touch';
 
 export class App {
@@ -64,6 +66,7 @@ export class App {
     this.startDemo();
     this.loop.start();
     this.title();
+    restoreSession();
   }
 
   onStep(fn: () => void) { this.stepHooks.push(fn); return () => { this.stepHooks = this.stepHooks.filter((f) => f !== fn); }; }
@@ -141,7 +144,11 @@ export class App {
       ['SETTINGS', 'Audio, video, data', () => this.settings(() => this.modes())],
     ];
     const list = el('div', { class: 'mode-list' }, items.map(([t, d, f], i) => btn([el('span', { class: 'mode-title' }, t), el('span', { class: 'mode-desc' }, d)], f, `mode-btn m${i % 7}`, i === 0 ? { 'data-autofocus': '' } : {})));
+    const user = currentUser();
+    const acct = btn(user ? `👤 ${user}` : '👤 Log in / Sign up', () => this.account(() => this.modes()), 'small acct-chip');
+    const off = onAccountChange(() => { if (!acct.isConnected) { off(); return; } const u = currentUser(); acct.firstChild!.textContent = u ? `👤 ${u}` : '👤 Log in / Sign up'; });
     const screen = el('div', { class: 'panel-screen modes' },
+      acct,
       el('div', { class: 'logo small' }, el('span', { class: 'logo-ko' }, 'K.O'), el('span', { class: 'logo-orbit' }, 'ORBIT')),
       list,
       el('div', { class: 'footer-hint' }, '↑↓ / D-Pad to move · Enter / A to select · Esc / B to go back · F2 perf HUD'),
@@ -152,6 +159,7 @@ export class App {
   versus() { this.show(versusScreen(this), () => this.modes(), 'wide'); }
   story() { this.show(storyMapScreen(this), () => this.modes(), 'wide'); }
   practice() { this.show(practiceScreen(this), () => this.modes(), 'wide'); }
+  account(back: () => void) { this.show(accountScreen(this, back), back); }
   guide(back: () => void, tab: 'basics' | 'tricks' | 'fighters' = 'basics') { this.show(guideScreen(this, back, tab), back, 'wide'); }
   online() { this.show(onlineMenuScreen(this), () => { this.leaveNet(); this.modes(); }); }
   settings(back: () => void) { this.show(settingsScreen(this, back), back); }

@@ -4,6 +4,7 @@ import { synth } from '../audio/synth';
 import { music } from '../audio/music';
 import { unlockAll } from '../story/campaign';
 import { DIFFICULTIES } from './story';
+import { currentUser } from '../net/account';
 import { DEVICE_IDS, deviceLabel } from '../core/input';
 import { el, btn, cycler, slider, toggle, toast, mount } from './dom';
 import type { App } from './app';
@@ -21,6 +22,8 @@ export function settingsScreen(app: App, back: () => void): HTMLElement {
   return el('div', { class: 'panel-screen settings' },
     el('div', { class: 'screen-head' }, btn('◀ Back', back, 'small ghost'), el('h1', {}, 'SETTINGS'), el('span', {})),
     el('div', { class: 'settings-grid' },
+      el('h3', {}, 'Account'),
+      btn(currentUser() ? `👤 ${currentUser()} — manage account` : '👤 Log in / Create account (cloud save)', () => app.account(() => app.settings(back))),
       el('h3', {}, 'Gameplay'),
       cycler('Story difficulty', DIFFICULTIES.map((x) => ({ v: x.v, label: x.label })), s.difficulty, (v) => set(() => { s.difficulty = v; })),
       el('p', { class: 'muted small' }, 'Easy: weaker CPUs and an extra life. Hard / Expert: smarter, tougher opponents (Expert also removes a life). Versus CPU levels are set per slot or with "All CPUs".'),

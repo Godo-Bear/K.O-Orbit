@@ -3,13 +3,19 @@
  * Serves the static Vite build (via the `assets` binding) and relays online
  * room traffic through a Durable Object per room code (max 10 players).
  */
+import { handleAccounts } from '../shared/accounts';
+
 const MAX_PLAYERS = 10;
 
-interface Env { ROOMS: any; ASSETS: any }
+interface Env { ROOMS: any; ACCOUNTS: any; ASSETS: any }
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname.startsWith('/api/')) {
+      const stub = env.ACCOUNTS.get(env.ACCOUNTS.idFromName('global'));
+      return stub.fetch(request);
+    }
     if (url.pathname === '/ws') {
       if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected websocket', { status: 426 });
       const code = (url.searchParams.get('room') || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
@@ -84,5 +90,15 @@ export class RoomDO {
     if (me.host) {
       for (const p of rest) { try { p.ws.send(JSON.stringify({ t: 'error', reason: 'host-left' })); p.ws.serializeAttachment(null); p.ws.close(1000, 'host-left'); } catch { /* ignore */ } }
     } else this.broadcastPeers();
+  }
+}
+
+/** Accounts & cloud saves (single Durable Object, SQLite-backed key/value storage). */
+export class AccountsDO {
+  ctx: any;
+  constructor(ctx: any, _env: Env) { this.ctx = ctx; }
+  async fetch(request: Request): Promise<Response> {
+    const st = this.ctx.storage;
+    return handleAccounts(request, { get: (k) => st.get(k), put: (k, v) => st.put(k, v), delete: (k) => st.delete(k) });
   }
 }

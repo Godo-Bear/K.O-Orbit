@@ -2,6 +2,9 @@ import { defineConfig, type Plugin } from 'vite';
 import { WebSocketServer, WebSocket } from 'ws';
 import type { IncomingMessage } from 'http';
 import type { Duplex } from 'stream';
+import fs from 'fs';
+import path from 'path';
+import { handleAccounts, type KV } from './shared/accounts';
 
 /**
  * Dev/preview room relay that mirrors worker/index.ts (Cloudflare Durable Object).
@@ -68,8 +71,34 @@ function relayPlugin(): Plugin {
   };
 }
 
+/** Dev/preview account API (same handler as the Worker), stored in .dev-data/accounts.json. */
+function accountsPlugin(): Plugin {
+  const file = path.resolve('.dev-data/accounts.json');
+  let data: Record<string, unknown> = {};
+  try { data = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { /* fresh */ }
+  const flush = () => { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, JSON.stringify(data)); };
+  const kv: KV = {
+    get: async (k) => data[k] as any,
+    put: async (k, v) => { data[k] = JSON.parse(JSON.stringify(v)); flush(); },
+    delete: async (k) => { const had = k in data; delete data[k]; flush(); return had; },
+  };
+  const mw = async (req: any, res: any, next: () => void) => {
+    if (!req.url?.startsWith('/api/')) return next();
+    const chunks: Buffer[] = [];
+    for await (const c of req) chunks.push(c as Buffer);
+    const headers = new Headers();
+    for (const [k, v] of Object.entries(req.headers)) if (typeof v === 'string') headers.set(k, v);
+    const body = ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks);
+    const r = await handleAccounts(new Request(`http://localhost${req.url}`, { method: req.method, headers, body }), kv);
+    res.statusCode = r.status;
+    r.headers.forEach((v, k) => res.setHeader(k, v));
+    res.end(await r.text());
+  };
+  return { name: 'ko-orbit-accounts', configureServer(s) { s.middlewares.use(mw); }, configurePreviewServer(s) { s.middlewares.use(mw); } };
+}
+
 export default defineConfig({
-  plugins: [relayPlugin()],
+  plugins: [relayPlugin(), accountsPlugin()],
   server: { hmr: { path: '/__vite_hmr' } },
   build: { target: 'es2022', sourcemap: false },
 });

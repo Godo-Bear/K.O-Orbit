@@ -57,6 +57,23 @@ vite.config.ts   dev/preview relay with the same protocol, so `npm run dev` supp
 scripts/headless.ts  simulation smoke tests
 ```
 
+## Accounts & cloud saves
+
+Players can create an account with a username and password (main menu → "Log in / Sign up", or Settings → Account), or keep playing as a guest. While logged in:
+- Progress (story stars, unlocked fighters, matches played), controls and settings are saved to the account automatically, a moment after anything changes.
+- Logging in on another device merges the progress: unlocks and stars are combined, never lost.
+- The username is used as the player's name in online rooms.
+
+**Security:**
+- Passwords are hashed with PBKDF2-SHA256 (100,000 iterations, random per-user salt) and never stored in plain text.
+- Sessions are random 256-bit bearer tokens that expire after 30 days.
+- Five wrong passwords lock that username for 60 seconds.
+
+**Server:** the API is `shared/accounts.ts` (`/api/register`, `/api/login`, `/api/logout`, `/api/me`, `/api/save`).
+- On Cloudflare it runs in the `AccountsDO` Durable Object; `wrangler.jsonc` migration `v2` adds it.
+- In `npm run dev` it is stored in `.dev-data/accounts.json`.
+- Accounts need the Worker deployment. A static Pages-only deploy shows a message instead.
+
 ## Modes
 
 - **Versus:** local battles for 2–10 fighters with human and CPU slots, Stock, Time or Stamina rules, and optional teams.

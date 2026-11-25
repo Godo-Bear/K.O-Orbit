@@ -107,7 +107,7 @@ export class MenuNav {
     window.addEventListener('keydown', (e) => {
       if (!this.enabled || !this.root || input.captureKey) return;
       const tag = (e.target as HTMLElement)?.tagName;
-      const typing = tag === 'INPUT' && (e.target as HTMLInputElement).type === 'text';
+      const typing = tag === 'INPUT' && ['text', 'password'].includes((e.target as HTMLInputElement).type);
       if (e.key === 'Escape' || (e.key === 'Backspace' && !typing)) { if (this.onBack) { e.preventDefault(); synth.menuBack(); this.onBack(); } return; }
       if (typing && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) return;
       const dirs: Record<string, string> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };

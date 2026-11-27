@@ -4,7 +4,7 @@ import { MAX_PLAYERS } from '../core/constants';
 import { Rng } from '../core/rng';
 import { Fighter } from './fighter';
 import { Platform, stageById, type StageDef } from './stages';
-import type { GameEvent, Hitbox, MatchRules, SlotConfig, Fx } from './types';
+import type { GameEvent, Hitbox, MatchRules, SlotConfig, Fx, HazardKind } from './types';
 import { charById } from './characters';
 
 export interface Ledge { x: number; y: number; side: number; plat: Platform; owner: number }
@@ -44,7 +44,13 @@ export class World {
   damageMul: number;
   winner: number[] = []; // slots of winners
   eliminations = 0;
-  hazardTimer = 0;
+  hazardTimer = 240;
+  hazardKind: HazardKind | null = null;
+  /** Telegraphed hazards in progress (rendered as warnings, then they strike). */
+  warnings: { kind: HazardKind; x: number; y: number; t: number; dur: number; dir: number }[] = [];
+  /** Current wind push (units/frame, + = right). */
+  wind = 0;
+  private windTarget = 0;
   shakeMag = 0;
   /** When true, the world is a network "view" — physics are not simulated locally. */
   remoteView = false;
@@ -68,6 +74,7 @@ export class World {
       });
     }
     this.timeLeft = rules.timeSec > 0 ? rules.timeSec * 60 : 0;
+    this.hazardKind = rules.hazard === 'stage' ? this.stage.hazard ?? null : rules.hazard && rules.hazard !== 'none' ? rules.hazard : null;
     const main = this.mainPlatform();
     const n = slots.length;
     slots.forEach((cfg, idx) => {
@@ -126,7 +133,7 @@ export class World {
     this.updateProjectiles();
     this.resolveHits();
     this.checkBlastZones();
-    if (this.rules.hazard === 'meteor' && this.phase === 'play') this.updateHazard();
+    if (this.hazardKind && this.phase === 'play') this.updateHazard();
 
     if (this.phase === 'play') {
       if (this.timeLeft > 0) {
@@ -330,20 +337,90 @@ export class World {
   }
 
   // ------------------------------------------------------------------ hazards
-  private updateHazard() {
-    this.hazardTimer--;
-    if (this.hazardTimer > 0) return;
-    this.hazardTimer = 70 + this.rng.int(60);
-    const main = this.mainPlatform();
-    const x = this.rng.range(main.x1 - 100, main.x2 + 100);
+  private hazardProjectile(o: Partial<Projectile> & { hb: Hitbox }) {
     const p = this.projectiles.find((q) => !q.active);
     if (!p) return;
-    Object.assign(p, {
-      active: true, owner: -1, team: -2, x, y: this.stage.blast.t + 250, vx: this.rng.range(-2, 2), vy: 9, gravity: 0.15, life: 400, age: 0,
-      r: 30, kind: 'meteor', fx: 'fire' as Fx, bounce: 0, homing: 0, hits: 1, rehitTimer: 0, lastVictim: -1,
-      hb: { s: 0, e: 0, x: 0, y: 0, r: 30, dmg: 13, ang: 70, bkb: 50, kbg: 70, fx: 'fire' as Fx },
-    });
-    this.emit({ type: 'hazard', x, y: p.y });
+    Object.assign(p, { active: true, owner: -1, team: -2, vx: 0, vy: 0, gravity: 0, life: 400, age: 0, bounce: 0, homing: 0, hits: 1, rehitTimer: 0, lastVictim: -1, fx: o.hb.fx ?? 'hit', r: o.hb.r, kind: 'meteor', x: 0, y: 0 }, o);
+    p.rx = p.x; p.ry = p.y;
+  }
+
+  /** A target spot: usually near a random fighter so hazards matter, sometimes anywhere on stage. */
+  private hazardX(spread = 160) {
+    const main = this.mainPlatform();
+    const live = this.fighters.filter((f) => f.alive && f.state !== 'dead' && f.state !== 'respawn');
+    if (live.length && this.rng.next() < 0.75) {
+      const f = live[this.rng.int(live.length)];
+      return Math.max(main.x1 + 30, Math.min(main.x2 - 30, f.x + this.rng.range(-spread, spread)));
+    }
+    return this.rng.range(main.x1 + 40, main.x2 - 40);
+  }
+
+  /** Hit everyone inside a vertical column; `skip` is a bitmask of slots already hit (returned updated). */
+  private hazardHitColumn(x: number, halfW: number, top: number, bottom: number, hb: Hitbox, skip = 0) {
+    for (const f of this.fighters) {
+      if (!f.alive || f.intangible() || (skip >> f.slot) & 1) continue;
+      if (Math.abs(f.x - x) < halfW + f.hw && f.y > top && f.y - f.H < bottom) { this.applyHit(null, f, hb, 1, f.x, f.y - f.H / 2, f.x >= x ? 1 : -1, true); skip |= 1 << f.slot; }
+    }
+    return skip;
+  }
+
+  private updateHazard() {
+    const kind = this.hazardKind!;
+    const main = this.mainPlatform();
+    // resolve telegraphed hazards
+    for (const w of this.warnings) {
+      w.t++;
+      if (w.t !== w.dur) continue;
+      if (w.kind === 'lightning') {
+        this.hazardHitColumn(w.x, 34, this.stage.blast.t, main.y + 5, { s: 0, e: 0, x: 0, y: 0, r: 30, dmg: 14, ang: 80, bkb: 55, kbg: 75, fx: 'elec', lag: 1.3 });
+        this.emit({ type: 'bolt', x: w.x, y: main.y });
+        this.shakeMag = Math.max(this.shakeMag, 7);
+      } else if (w.kind === 'lava') {
+        this.emit({ type: 'geyser', x: w.x, y: w.y });
+      } else if (w.kind === 'icicle') {
+        this.hazardProjectile({ x: w.x, y: this.stage.blast.t + 220, vy: 4, gravity: 0.55, kind: 'icicle', hb: { s: 0, e: 0, x: 0, y: 0, r: 22, dmg: 11, ang: 270, bkb: 35, kbg: 60, fx: 'ice', freeze: 10 } });
+      } else if (w.kind === 'debris') {
+        this.hazardProjectile({ x: w.dir > 0 ? this.stage.blast.l + 80 : this.stage.blast.r - 80, y: w.y, vx: 15 * w.dir, life: 260, kind: 'meteor', hb: { s: 0, e: 0, x: 0, y: 0, r: 28, dmg: 12, ang: 40, bkb: 50, kbg: 70, fx: 'hit' } });
+      } else if (w.kind === 'meteor') {
+        this.hazardProjectile({ x: w.x + this.rng.range(-30, 30), y: this.stage.blast.t + 250, vx: this.rng.range(-1.5, 1.5), vy: 9, gravity: 0.15, kind: 'meteor', hb: { s: 0, e: 0, x: 0, y: 0, r: 30, dmg: 13, ang: 70, bkb: 50, kbg: 70, fx: 'fire' } });
+      }
+    }
+    // lava geysers keep erupting for a while after the warning
+    for (const w of this.warnings) if (w.kind === 'lava' && w.t > w.dur && w.t < w.dur + 36) {
+      w.dir = this.hazardHitColumn(w.x, 42, main.y - 330, main.y + 5, { s: 0, e: 0, x: 0, y: 0, r: 30, dmg: 11, ang: 88, bkb: 70, kbg: 60, fx: 'fire' }, w.dir); // dir = hit mask
+    }
+    this.warnings = this.warnings.filter((w) => w.t < w.dur + (w.kind === 'lava' ? 42 : 8));
+    // wind: ease toward the current gust
+    this.wind += (this.windTarget - this.wind) * 0.04;
+    if (Math.abs(this.wind) > 0.05) for (const f of this.fighters) {
+      if (!f.alive || f.state === 'ledge' || f.state === 'respawn' || f.state === 'dead') continue;
+      f.x += this.wind * (f.grounded ? 0.45 : 1) * (100 / (f.st.weight + 40));
+    }
+    // schedule the next hazard
+    if (--this.hazardTimer > 0) return;
+    switch (kind) {
+      case 'lightning': this.hazardTimer = 200 + this.rng.int(140); this.warnings.push({ kind, x: this.hazardX(), y: main.y, t: 0, dur: 75, dir: 0 }); break;
+      case 'lava': this.hazardTimer = 220 + this.rng.int(140); this.warnings.push({ kind, x: this.hazardX(220), y: main.y, t: 0, dur: 80, dir: 0 }); break;
+      case 'icicle': {
+        this.hazardTimer = 150 + this.rng.int(120);
+        const n = 1 + this.rng.int(2);
+        for (let i = 0; i < n; i++) this.warnings.push({ kind, x: this.hazardX(260), y: main.y, t: 0, dur: 60 + i * 20, dir: 0 });
+        break;
+      }
+      case 'debris': {
+        this.hazardTimer = 240 + this.rng.int(160);
+        const dir = this.rng.next() < 0.5 ? 1 : -1;
+        this.warnings.push({ kind, x: dir > 0 ? main.x1 : main.x2, y: main.y - this.rng.range(40, 380), t: 0, dur: 70, dir });
+        break;
+      }
+      case 'meteor': this.hazardTimer = 110 + this.rng.int(80); this.warnings.push({ kind, x: this.hazardX(300), y: main.y, t: 0, dur: 55, dir: 0 }); break;
+      case 'wind': {
+        // alternate calm / gust phases
+        if (this.windTarget === 0) { this.windTarget = (this.rng.next() < 0.5 ? -1 : 1) * this.rng.range(2.2, 3.4); this.hazardTimer = 160 + this.rng.int(100); this.emit({ type: 'hazard', x: 0, y: 0, n: Math.sign(this.windTarget) }); }
+        else { this.windTarget = 0; this.hazardTimer = 260 + this.rng.int(200); }
+        break;
+      }
+    }
   }
 
   // ------------------------------------------------------------------ KOs & match flow

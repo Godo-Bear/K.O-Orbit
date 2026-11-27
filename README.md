@@ -74,10 +74,23 @@ Players can create an account with a username and password (main menu → "Log i
 - In `npm run dev` it is stored in `.dev-data/accounts.json`.
 - Accounts need the Worker deployment. A static Pages-only deploy shows a message instead.
 
+## Stage hazards
+
+Six stages have a hazard, enabled with **Hazards: ON** in Versus (also in the online lobby and in matching Story stages). Every hazard is telegraphed before it strikes, and CPUs try to dodge the warnings.
+
+| Stage | Hazard |
+|---|---|
+| Thunder Spire | Lightning hits a glowing column after a warning |
+| Ember Forge | Lava geysers erupt from bubbling vents |
+| Glacier Peak | Icicles fall where shadows appear |
+| Hyperlane Cruiser | Space debris streaks across a marked lane |
+| Nebula Drift | Meteors land on target rings |
+| Desert Mirage | Gusts of wind push everyone sideways |
+
 ## Modes
 
 - **Versus:** local battles for 2–10 fighters with human and CPU slots, Stock, Time or Stamina rules, and optional teams.
-- **Story Mode:** a 14-stage ladder in 5 chapters with stars and fighter unlocks. Fight types include duels, 3-on-1s, stamina bosses, a meteor-shower timed battle, a 60-second survival stage, a mirror match against your own fighter, and team battles with a CPU ally.
+- **Story Mode:** a VS intro with a rival's taunt before each fight, a Next Stage button after a win, epilogues after each finale, and a 14-stage ladder in 5 chapters with stars and fighter unlocks. Fight types include duels, 3-on-1s, stamina bosses, a meteor-shower timed battle, a 60-second survival stage, a mirror match against your own fighter, and team battles with a CPU ally.
 - **Move Guide:** basics, 16 tricks and techniques (short-hop aerials, fast fall, dash dance, jump out of shield, tech, DI, spikes and more), plus specials and combos for every fighter. Inputs are shown with your actual key and gamepad bindings, and a "Practice as …" button jumps straight into Practice.
 - **Practice:** a training dummy that can stand, shield, crouch, jump or fight back as a level 1–9 CPU. It has a combo counter, damage readouts, a frame readout, position reset and dummy % presets, and hitboxes on F4.
 - **Online:** room-code play for up to 10 players.

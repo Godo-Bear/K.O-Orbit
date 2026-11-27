@@ -11,6 +11,8 @@ export interface StageDef {
   name: string;
   theme: 'station' | 'nebula' | 'crater' | 'ruins' | 'forge' | 'glacier' | 'metro' | 'canopy' | 'hyperlane' | 'abyss' | 'reef' | 'dunes' | 'storm' | 'clockwork' | 'shrine';
   gravity?: number; // stage gravity multiplier (underwater < 1)
+  hazard?: import('./types').HazardKind; // stage hazard (Versus 'Hazards: ON')
+  hazardText?: string;
   traction?: number; // ground friction multiplier (ice < 1)
   platforms: PlatformDef[];
   blast: { l: number; r: number; t: number; b: number };
@@ -32,7 +34,7 @@ export const STAGES: StageDef[] = [
     sky: ['#05061a', '#16114a', '#3a1c6e'],
   },
   {
-    id: 'nebula', name: 'Nebula Drift', theme: 'nebula',
+    id: 'nebula', hazard: 'meteor', hazardText: 'Meteors rain from above — watch for the target rings.', name: 'Nebula Drift', theme: 'nebula',
     desc: 'Drifting platforms ride the cosmic currents.',
     platforms: [
       { x1: -640, x2: 640, y: 0, solid: true, h: 220 },
@@ -64,7 +66,7 @@ export const STAGES: StageDef[] = [
     sky: ['#79b8ff', '#bfe2ff', '#fff3d6'],
   },
   {
-    id: 'forge', name: 'Ember Forge', theme: 'forge',
+    id: 'forge', hazard: 'lava', hazardText: 'Lava geysers erupt from the floor where it bubbles.', name: 'Ember Forge', theme: 'forge',
     desc: 'Twin lifts rise and fall over a molten core.',
     platforms: [
       { x1: -600, x2: 600, y: 0, solid: true, h: 240 },
@@ -76,7 +78,7 @@ export const STAGES: StageDef[] = [
     sky: ['#1a0303', '#5c0e08', '#ff5a1f'],
   },
   {
-    id: 'glacier', name: 'Glacier Peak', theme: 'glacier', traction: 0.35,
+    id: 'glacier', hazard: 'icicle', hazardText: 'Icicles fall wherever a shadow appears.', name: 'Glacier Peak', theme: 'glacier', traction: 0.35,
     desc: 'A frozen summit. The ice is slick — momentum carries.',
     platforms: [
       { x1: -660, x2: 660, y: 0, solid: true, h: 260 },
@@ -114,7 +116,7 @@ export const STAGES: StageDef[] = [
     sky: ['#0e3b2a', '#3f8f5a', '#d8f3a6'],
   },
   {
-    id: 'hyperlane', name: 'Hyperlane Cruiser', theme: 'hyperlane',
+    id: 'hyperlane', hazard: 'debris', hazardText: 'Space debris streaks across the deck — the arrow shows where.', name: 'Hyperlane Cruiser', theme: 'hyperlane',
     desc: 'The hull of a starship at warp. A cargo lift sweeps the deck.',
     platforms: [
       { x1: -720, x2: 720, y: 0, solid: true, h: 220 },
@@ -148,7 +150,7 @@ export const STAGES: StageDef[] = [
     sky: ['#032a4a', '#0a6d8f', '#4fd6c8'],
   },
   {
-    id: 'dunes', name: 'Desert Mirage', theme: 'dunes',
+    id: 'dunes', hazard: 'wind', hazardText: 'Desert gusts push everyone sideways.', name: 'Desert Mirage', theme: 'dunes',
     desc: 'Sun-baked sandstone ruins. A flying carpet glides overhead.',
     platforms: [
       { x1: -760, x2: 760, y: 0, solid: true, h: 250 },
@@ -160,7 +162,7 @@ export const STAGES: StageDef[] = [
     sky: ['#f08a3c', '#ffc46b', '#ffe8b0'],
   },
   {
-    id: 'storm', name: 'Thunder Spire', theme: 'storm',
+    id: 'storm', hazard: 'lightning', hazardText: 'Lightning strikes the glowing column.', name: 'Thunder Spire', theme: 'storm',
     desc: 'The top of a lightning tower above a raging storm.',
     platforms: [
       { x1: -540, x2: 540, y: 0, solid: true, h: 300 },

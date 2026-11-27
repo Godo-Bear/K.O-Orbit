@@ -20,6 +20,7 @@ export interface StoryStage {
   map: { x: number; y: number }; // ladder node position (0..100)
   boss?: boolean;
   goal?: 'survive'; // win by still having a stock when the timer runs out
+  epilogue?: string; // shown after clearing (chapter finales)
 }
 
 export const STORY: StoryStage[] = [
@@ -44,9 +45,9 @@ export const STORY: StoryStage[] = [
   },
   {
     id: 's3', chapter: 'Chapter 2', title: 'Trial by Fire', map: { x: 28, y: 82 },
-    briefing: 'In the Ember Forge, the blaze brawler Ember tests every newcomer in a stamina duel. Burn through her health before she burns through yours.',
+    briefing: 'In the Ember Forge, the blaze brawler Ember tests every newcomer in a stamina duel. Burn through her health before she burns through yours — and stay off the bubbling lava vents.',
     objective: 'Stamina battle: reduce Ember\'s HP to 0 (150 HP).',
-    rules: { mode: 'stamina', stocks: 1, timeSec: 0, hp: 150, stageId: 'forge' },
+    rules: { mode: 'stamina', stocks: 1, timeSec: 0, hp: 150, stageId: 'forge', hazard: 'stage' },
     enemies: [{ charId: 'ember', level: 4 }],
     stars: { damage: 80, time: 70 },
     reward: 'ember',
@@ -55,16 +56,16 @@ export const STORY: StoryStage[] = [
     id: 's4', chapter: 'Chapter 2', title: 'Meteor Shower', map: { x: 39, y: 62 },
     briefing: 'Aurex flares. Burning debris rains on the Nebula Drift while two rivals fight on. Dodge the meteors — they hit everyone.',
     objective: 'Win a 3-way timed battle (90s) under meteor hazards. Score the most KOs.',
-    rules: { mode: 'time', stocks: 0, timeSec: 90, hp: 150, stageId: 'nebula', hazard: 'meteor', maxGangUp: 1 },
+    rules: { mode: 'time', stocks: 0, timeSec: 90, hp: 150, stageId: 'nebula', hazard: 'stage', maxGangUp: 1 },
     enemies: [{ charId: 'brick', level: 4 }, { charId: 'ember', level: 4 }],
     stars: { damage: 120, time: 90 },
     reward: 'kaida',
   },
   {
     id: 's5', chapter: 'Chapter 3', title: 'Frozen Sovereign', map: { x: 50, y: 80 },
-    briefing: 'Glacia rules Glacier Peak, where the air is thin, the ice is slick and you fall slower. Her frost lances freeze foes in place. Shatter her guard.',
+    briefing: 'Glacia rules Glacier Peak, where the air is thin, the ice is slick and you fall slower. Her frost lances freeze foes in place, and icicles fall from the cliffs. Shatter her guard.',
     objective: 'Defeat Glacia (2 stocks) in low gravity.',
-    rules: { mode: 'stock', stocks: 2, timeSec: 0, hp: 150, stageId: 'glacier', gravityMul: 0.75 },
+    rules: { mode: 'stock', stocks: 2, timeSec: 0, hp: 150, stageId: 'glacier', gravityMul: 0.75, hazard: 'stage' },
     enemies: [{ charId: 'glacia', level: 5 }],
     stars: { damage: 70, time: 100 },
     reward: 'glacia',
@@ -96,6 +97,7 @@ export const STORY: StoryStage[] = [
     enemies: [{ charId: 'omega', level: 8, scale: 1.55, armor: true, hp: 260 }],
     stars: { damage: 150, time: 120 },
     reward: 'omega',
+    epilogue: 'Omega crashes through the arena floor and the void around Aurex falls silent. The crowd across a hundred floating arenas roars your name. You are the champion of K.O Orbit… but far beyond the dying star, something stirs. The orbit is not finished with you yet. (Chapter 5 unlocked!)',
   },
   {
     id: 's9', chapter: 'Chapter 5', title: 'Tidebreakers', map: { x: 93, y: 34 },
@@ -118,9 +120,9 @@ export const STORY: StoryStage[] = [
   },
   {
     id: 's11', chapter: 'Chapter 5', title: 'Eye of the Storm', map: { x: 65, y: 38 },
-    briefing: 'A lightning storm traps you atop Thunder Spire with four restless challengers. You don\'t need to win — just still be standing when the storm passes.',
+    briefing: 'A lightning storm traps you atop Thunder Spire with four restless challengers. Lightning strikes wherever the air glows. You don\'t need to win — just still be standing when the storm passes.',
     objective: 'SURVIVE for 60 seconds against 4 fighters (you have 2 stocks). Two attack at a time.',
-    rules: { mode: 'stock', stocks: 99, timeSec: 60, hp: 150, stageId: 'storm', maxGangUp: 2 },
+    rules: { mode: 'stock', stocks: 99, timeSec: 60, hp: 150, stageId: 'storm', maxGangUp: 2, hazard: 'stage' },
     playerStocks: 2,
     enemies: [{ charId: 'volt', level: 4 }, { charId: 'zephyr', level: 4 }, { charId: 'ember', level: 4 }, { charId: 'brick', level: 4 }],
     stars: { damage: 80, time: 60 },
@@ -152,6 +154,7 @@ export const STORY: StoryStage[] = [
     enemies: [{ charId: 'omega', level: 7, scale: 1.4, armor: true, stocks: 2, team: 1 }, { charId: 'bolt9', level: 6, stocks: 2, team: 1 }],
     stars: { damage: 110, time: 180 },
     boss: true,
+    epilogue: 'The void collapses. Omega, beaten for the last time, bows — and the rebuilt titan powers down beside him. Rook raises his sword in salute, and every fighter you defeated gathers at the edge of the arena to cheer. The tournament of Aurex has a new legend, and it is you. THE END — thanks for playing K.O Orbit!',
   },
 ];
 
@@ -198,3 +201,19 @@ export function unlockHint(id: string): string {
   if (m) return `Finish ${m.n} matches (${Math.min(m.n, save.matches ?? 0)}/${m.n})`;
   return '';
 }
+
+/** Pre-fight lines, said by the first opponent in the VS intro. */
+export const TAUNTS: Record<string, string> = {
+  nova: 'Strap in, rookie. I fly faster than you can blink.',
+  volt: 'Feel that tingle? That\'s the last thing you\'ll feel.',
+  brick: 'You will break. Mountains always win.',
+  zephyr: 'You can\'t hit what you can\'t catch.',
+  ember: 'Things are about to get HOT in here!',
+  glacia: 'Kneel before the cold. It is so much quieter.',
+  rook: 'I have sworn an oath. You shall not pass.',
+  omega: 'Every star dies. Today, so does your hope.',
+  kaida: 'Flow like water… and crash like a wave.',
+  pip: 'Ooh, a challenger! Mind the book, it bites.',
+  seraphine: 'The sun rises on the worthy. Prove you are worthy.',
+  bolt9: 'TARGET ACQUIRED. INITIATING: SMASH.',
+};

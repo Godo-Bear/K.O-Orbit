@@ -12,11 +12,11 @@ import { CHARACTERS, charById } from '../sim/characters';
 import { STAGES } from '../sim/stages';
 import type { SlotConfig } from '../sim/types';
 import type { NetClient } from '../net/client';
-import { recordClear, recordMatch, MATCH_UNLOCKS, type StoryStage } from '../story/campaign';
+import { recordClear, recordMatch, MATCH_UNLOCKS, STORY, type StoryStage } from '../story/campaign';
 import { save as saveData } from '../core/save';
 import { el, btn, nav, toast, portraitCanvas, applyUiZoom, cycler } from './dom';
 import { versusScreen } from './versus';
-import { storyMapScreen } from './story';
+import { storyMapScreen, playStoryStage } from './story';
 import { onlineMenuScreen } from './online';
 import { settingsScreen, controlsScreen, controlsGuide } from './options';
 import { practiceScreen, DUMMY_MODES, DUMMY_PCTS } from './practice';
@@ -250,6 +250,7 @@ export class App {
           el('h3', {}, 'STAGE CLEAR!'),
           el('div', { class: 'stars big' }, [1, 2, 3].map((k) => el('span', { class: k <= stars ? 'star on' : 'star' }, '★'))),
           el('div', { class: 'muted' }, `★ Clear  ·  ★ Take ≤ ${story.stars.damage} damage (${Math.round(human.damageTaken)})  ·  ★ Clear in ≤ ${story.stars.time}s (${secs}s)`),
+          story.epilogue ? el('div', { class: 'epilogue' }, el('div', { class: 'chapter' }, 'Epilogue'), el('p', {}, story.epilogue)) : null,
           unlocked ? el('div', { class: 'unlock-banner' }, portraitCanvas(110, (c, wd, ht) => drawHeroCard(c, charById(unlocked), wd, ht), 130), el('div', {}, el('b', {}, 'NEW CHALLENGER UNLOCKED!'), el('div', {}, `${charById(unlocked).name} — ${charById(unlocked).title}`))) : null,
         );
         if (unlocked) { synth.unlockJingle(); toast(`🔓 ${charById(unlocked).name} unlocked!`, 4000); }
@@ -284,10 +285,11 @@ export class App {
     const winTxt = storyWon !== null ? (storyWon ? 'YOU WIN!' : 'DEFEATED') : winner.length === 1 ? `${s.slotTags.get(winner[0].slot) ?? playerLabel(winner[0].slot)} WINS!` : winner.length > 1 && winner.every((f) => f.team === winner[0].team && f.team >= 0) ? 'TEAM VICTORY!' : 'DRAW!';
     const online = s.kind === 'host' || s.kind === 'client';
     const actions = el('div', { class: 'row-actions' },
-      story ? btn('Continue', () => { this.endSession(); this.story(); }, 'primary', { 'data-autofocus': '' })
+      story && storyWon && STORY.indexOf(story) < STORY.length - 1 ? btn('Next Stage ▶', () => { this.endSession(); playStoryStage(this, STORY.indexOf(story) + 1); }, 'primary', { 'data-autofocus': '' }) : null,
+      story ? btn('Story Map', () => { this.endSession(); this.story(); }, storyWon && STORY.indexOf(story) < STORY.length - 1 ? '' : 'primary', storyWon && STORY.indexOf(story) < STORY.length - 1 ? {} : { 'data-autofocus': '' })
         : online ? btn('Back to Lobby', () => { this.endSession(); back(); }, 'primary', { 'data-autofocus': '' })
           : btn('Rematch', () => { const lm = this.lastMatch!; this.endSession(); this.startMatch(lm.kind, { ...lm.cfg, seed: Math.floor(Math.random() * 1e6) }, lm.back); }, 'primary', { 'data-autofocus': '' }),
-      story ? btn('Retry', () => { const lm = this.lastMatch!; this.endSession(); this.startMatch(lm.kind, { ...lm.cfg, seed: Math.floor(Math.random() * 1e6) }, lm.back); }) : null,
+      story ? btn('Retry', () => { this.endSession(); playStoryStage(this, STORY.indexOf(story)); }) : null,
       !online && !story ? btn('Character Select', () => { this.endSession(); back(); }) : null,
       btn('Main Menu', () => { this.endSession(); if (online) this.leaveNet(); this.modes(); }),
     );

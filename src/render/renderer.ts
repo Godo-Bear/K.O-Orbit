@@ -126,9 +126,16 @@ export class Renderer {
         case 'tech': fx.spawn(4, e.x, e.y - 30, 0, -1, 24, 18, '#ffffff', 0, 0.95); break;
         case 'ledge': fx.spawn(4, e.x, e.y, 0, -1, 14, 10, '#ffffff', 0, 0.9); break;
         case 'hazard': break;
+        case 'bolt': {
+          fx.spawn(3, e.x, w.stage.blast.t, 0, 0, 22, 70, '#e8fbff', 0, 1, 0, Math.PI / 2);
+          fx.spawn(3, e.x, w.stage.blast.t, 0, 0, 14, 30, '#ffffff', 0, 1, 0, Math.PI / 2);
+          fx.sparks(e.x, e.y, 26, 14, ['#ffffff', '#7fdcff']); fx.ring(e.x, e.y, 20, 9, 24, '#bfefff');
+          this.koFlash = Math.max(this.koFlash, 4);
+          break;
+        }
+        case 'geyser': fx.ring(e.x, e.y, 16, 5, 20, '#ffb050'); break;
       }
     }
-    void w;
   }
 
   // ------------------------------------------------------------------ camera
@@ -186,6 +193,7 @@ export class Renderer {
     drawStage(ctx, w.stage, w.platforms, this.t);
     for (const p of w.projectiles) if (p.active) this.drawProjectile(p, alpha);
     // fighters: draw back-to-front, hit victims on top
+    this.drawHazards(w, opts.paused);
     if (!opts.paused) this.updateTrails(w);
     this.drawTrails(w);
     for (const f of w.fighters) if (f.alive && f.state !== 'dead') this.drawFighter(f, alpha, opts);
@@ -225,6 +233,11 @@ export class Renderer {
       case 'shuriken':
         ctx.rotate(p.age * 0.6); ctx.fillStyle = c[1];
         ctx.beginPath(); for (let i = 0; i < 8; i++) { const rr = i % 2 ? r * 0.35 : r * 1.2; ctx.lineTo(Math.cos((i * Math.PI) / 4) * rr, Math.sin((i * Math.PI) / 4) * rr); } ctx.fill();
+        break;
+      case 'icicle':
+        ctx.fillStyle = '#05040c'; ctx.beginPath(); ctx.moveTo(-r * 0.75, -r * 1.6); ctx.lineTo(r * 0.75, -r * 1.6); ctx.lineTo(0, r * 1.5); ctx.fill();
+        ctx.fillStyle = '#bfe9ff'; ctx.beginPath(); ctx.moveTo(-r * 0.55, -r * 1.45); ctx.lineTo(r * 0.55, -r * 1.45); ctx.lineTo(0, r * 1.25); ctx.fill();
+        ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(-r * 0.2, -r * 1.4); ctx.lineTo(r * 0.05, -r * 1.4); ctx.lineTo(0, r * 0.6); ctx.fill();
         break;
       case 'lance':
         ctx.scale(Math.sign(p.vx) || 1, 1);
@@ -388,6 +401,79 @@ export class Renderer {
       if (y === t.y) { ctx.beginPath(); ctx.moveTo(t.x - 7 * k, y + 6 * k); ctx.lineTo(t.x + 7 * k, y + 6 * k); ctx.lineTo(t.x, y + 14 * k); ctx.fill(); }
     }
     this.tags.length = 0;
+  }
+
+  /** Telegraphs and active hazards (lightning columns, lava vents, icicle shadows, debris arrows, meteor rings, wind). */
+  private drawHazards(w: World, paused?: boolean) {
+    const ctx = this.ctx;
+    const main = w.mainPlatform();
+    const blink = (this.t >> 2) % 2;
+    for (const h of w.warnings) {
+      const k = Math.min(1, h.t / h.dur);
+      ctx.save();
+      switch (h.kind) {
+        case 'lightning': {
+          if (h.t > h.dur) break;
+          const g = ctx.createLinearGradient(0, w.stage.blast.t, 0, main.y);
+          g.addColorStop(0, 'rgba(160,220,255,0)'); g.addColorStop(1, `rgba(170,225,255,${0.15 + k * 0.35})`);
+          ctx.fillStyle = g; ctx.fillRect(h.x - 34, w.stage.blast.t, 68, main.y - w.stage.blast.t);
+          ctx.strokeStyle = `rgba(220,245,255,${blink ? 0.9 : 0.4})`; ctx.lineWidth = 3; ctx.setLineDash([16, 12]);
+          ctx.strokeRect(h.x - 34, main.y - 420, 68, 420); ctx.setLineDash([]);
+          this.warnIcon(h.x, main.y - 450, '#bfefff');
+          break;
+        }
+        case 'lava': {
+          if (h.t <= h.dur) { // bubbling vent
+            ctx.fillStyle = `rgba(255,${120 + blink * 60},40,${0.4 + k * 0.5})`;
+            ctx.beginPath(); ctx.ellipse(h.x, main.y + 4, 40, 9, 0, 0, Math.PI * 2); ctx.fill();
+            if (!paused && this.t % 4 === 0) this.effects.spawn(1, h.x + (Math.random() - 0.5) * 50, main.y, 0, -2 - k * 3, 16, 6 + k * 6, 'rgba(255,140,40,0.8)', 0.2, 0.95);
+            this.warnIcon(h.x, main.y - 60, '#ffb050');
+          } else { // erupting column
+            const e = Math.min(1, (h.t - h.dur) / 6) * Math.max(0, 1 - (h.t - h.dur - 30) / 12);
+            const g = ctx.createLinearGradient(0, main.y, 0, main.y - 330);
+            g.addColorStop(0, 'rgba(255,240,160,0.95)'); g.addColorStop(0.4, 'rgba(255,110,30,0.9)'); g.addColorStop(1, 'rgba(255,60,0,0)');
+            ctx.fillStyle = g; ctx.globalAlpha = e;
+            ctx.beginPath(); ctx.moveTo(h.x - 30, main.y); ctx.quadraticCurveTo(h.x - 50 + Math.sin(this.t) * 6, main.y - 160, h.x - 20, main.y - 330); ctx.lineTo(h.x + 20, main.y - 330); ctx.quadraticCurveTo(h.x + 50 - Math.sin(this.t) * 6, main.y - 160, h.x + 30, main.y); ctx.fill();
+            if (!paused && this.t % 2 === 0) this.effects.spawn(0, h.x + (Math.random() - 0.5) * 40, main.y - Math.random() * 300, (Math.random() - 0.5) * 6, -6, 14, 4, '#ffd060', 0, 0.9, 0.2);
+          }
+          break;
+        }
+        case 'icicle': case 'meteor': {
+          if (h.t > h.dur) break;
+          const r = (h.kind === 'icicle' ? 26 : 40) * (0.6 + k * 0.6);
+          ctx.fillStyle = h.kind === 'icicle' ? `rgba(20,40,80,${0.25 + k * 0.35})` : `rgba(255,90,30,${0.2 + k * 0.3})`;
+          ctx.beginPath(); ctx.ellipse(h.x, main.y + 2, r, r * 0.25, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = h.kind === 'icicle' ? '#cfefff' : '#ffb050'; ctx.lineWidth = 3; ctx.globalAlpha = blink ? 1 : 0.5;
+          ctx.beginPath(); ctx.ellipse(h.x, main.y + 2, r * 1.2, r * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
+          break;
+        }
+        case 'debris': {
+          if (h.t > h.dur) break;
+          const x = h.dir > 0 ? this.cam.x - this.W / this.cam.zoom / 2 + 60 : this.cam.x + this.W / this.cam.zoom / 2 - 60;
+          ctx.fillStyle = blink ? '#ff5a5a' : '#ffd23f';
+          ctx.beginPath(); ctx.moveTo(x + h.dir * 34, h.y); ctx.lineTo(x - h.dir * 6, h.y - 26); ctx.lineTo(x - h.dir * 6, h.y + 26); ctx.fill();
+          ctx.strokeStyle = 'rgba(255,90,90,0.35)'; ctx.lineWidth = 3; ctx.setLineDash([20, 16]);
+          ctx.beginPath(); ctx.moveTo(main.x1 - 200, h.y); ctx.lineTo(main.x2 + 200, h.y); ctx.stroke(); ctx.setLineDash([]);
+          break;
+        }
+      }
+      ctx.restore();
+    }
+    // wind streaks
+    if (Math.abs(w.wind) > 0.3 && !paused && this.intensity > 0) {
+      for (let i = 0; i < 2; i++) {
+        const y = main.y - Math.random() * 700, x = this.cam.x - Math.sign(w.wind) * (this.W / this.cam.zoom / 2) + (Math.random() - 0.5) * 200;
+        this.effects.spawn(0, x, y, w.wind * 9, 0, 40, 2.5, 'rgba(255,240,210,0.6)', 0, 1);
+      }
+    }
+  }
+
+  private warnIcon(x: number, y: number, col: string) {
+    const ctx = this.ctx;
+    const bob = Math.sin(this.t * 0.3) * 6;
+    ctx.fillStyle = col; ctx.strokeStyle = '#120a24'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(x, y - 34 + bob); ctx.lineTo(x + 26, y + 10 + bob); ctx.lineTo(x - 26, y + 10 + bob); ctx.closePath(); ctx.stroke(); ctx.fill();
+    ctx.fillStyle = '#120a24'; ctx.font = '900 30px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('!', x, y + 6 + bob);
   }
 
   /** Record active hitbox positions for smear trails on attacks. */

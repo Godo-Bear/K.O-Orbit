@@ -14,7 +14,7 @@ import { stagePreview } from './versus';
 import type { App } from './app';
 
 interface LobbyPlayer { peerId: number; name: string; charId: string; cpu?: boolean; level?: number }
-interface LobbyState { players: LobbyPlayer[]; stageId: string; mode: MatchRules['mode']; stocks: number; timeSec: number }
+interface LobbyState { players: LobbyPlayer[]; stageId: string; mode: MatchRules['mode']; stocks: number; timeSec: number; hazards?: boolean }
 
 const local = { device: 'kb1', charId: 'nova' };
 
@@ -129,7 +129,7 @@ function lobbyScreen(app: App, net: NetClient): HTMLElement {
     }));
     const peerSlots: Record<number, number> = {};
     lobby.players.forEach((p, i) => { if (!p.cpu) peerSlots[i] = p.peerId; });
-    const rules: MatchRules = { mode: lobby.mode, stocks: lobby.stocks, timeSec: lobby.mode === 'time' ? lobby.timeSec : 0, hp: 150, stageId: lobby.stageId };
+    const rules: MatchRules = { mode: lobby.mode, stocks: lobby.stocks, timeSec: lobby.mode === 'time' ? lobby.timeSec : 0, hp: 150, stageId: lobby.stageId, hazard: lobby.hazards ? 'stage' : 'none' };
     const seed = Math.floor(Math.random() * 1e6);
     const cfg = { rules, slots, seed, peerSlots };
     net.send('all', { k: 'start', cfg: { rules, slots, seed }, peerSlots });
@@ -170,6 +170,7 @@ function lobbyScreen(app: App, net: NetClient): HTMLElement {
           ? cycler('Time', [60, 120, 180, 300].map((t) => ({ v: t, label: `${t / 60}:00` })), lobby.timeSec, (v) => { lobby.timeSec = v; hostBroadcast(); })
           : cycler('Stocks', [1, 2, 3, 4, 5].map((n) => ({ v: n, label: String(n) })), lobby.stocks, (v) => { lobby.stocks = v; hostBroadcast(); }),
         cycler('Stage', STAGES.map((s) => ({ v: s.id, label: s.name })), lobby.stageId, (v) => { lobby.stageId = v; hostBroadcast(); }),
+        cycler('Hazards', [{ v: false, label: 'OFF' }, { v: true, label: 'ON' }], !!lobby.hazards, (v) => { lobby.hazards = v; hostBroadcast(); }),
         cycler('Input delay', [0, 1, 2, 3, 4, 6].map((n) => ({ v: n, label: `${n}f` })), save.settings.inputDelay, (v) => { save.settings.inputDelay = v; persist(); }),
         cycler('CPU Lvl', Array.from({ length: 9 }, (_, k) => ({ v: k + 1, label: String(k + 1) })), lobby.players.find((p) => p.cpu)?.level ?? 5, (v) => { lobby.players.forEach((p) => { if (p.cpu) p.level = v; }); hostBroadcast(); }),
         btn('+ Add CPU', () => {

@@ -107,6 +107,20 @@ export class CpuBrain {
       return o;
     }
 
+    // ---- dodge telegraphed hazards (lightning, lava vents, icicles, meteors)
+    if (f.grounded) for (const h of w.warnings) {
+      if (h.kind === 'debris' || h.t < h.dur * 0.35 || h.t > h.dur + 30) continue;
+      const dx = f.x - h.x;
+      if (Math.abs(dx) < 95 && this.chance(0.3 + L * 0.07)) {
+        this.clearHolds();
+        const away = dx === 0 ? (f.x > 0 ? -1 : 1) : Math.sign(dx);
+        const edge = away > 0 ? f.x > main.x2 - 120 : f.x < main.x1 + 120;
+        const dir = edge ? -away : away;
+        o.dashTap = dir; o.x = dir; this.holdX = dir; this.wait = 8;
+        return o;
+      }
+    }
+
     // ---- choose target
     let tgt: Fighter | null = null;
     let best = 1e9;

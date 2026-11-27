@@ -4,7 +4,7 @@ import type { World } from '../sim/world';
 import type { Fx, GameEvent } from '../sim/types';
 
 const FX_LIST: Fx[] = ['hit', 'fire', 'elec', 'ice', 'slash', 'dark', 'wind', 'water', 'arcane', 'solar'];
-const KINDS = ['orb', 'plasma', 'boulder', 'shuriken', 'ball', 'fireball', 'lance', 'void', 'meteor', 'water', 'arcane', 'spear', 'fist', 'book'];
+const KINDS = ['orb', 'plasma', 'boulder', 'shuriken', 'ball', 'fireball', 'lance', 'void', 'meteor', 'water', 'arcane', 'spear', 'fist', 'book', 'icicle'];
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 /** Host → clients: compact world snapshot. */
@@ -17,7 +17,9 @@ export function encodeSnapshot(w: World, events: GameEvent[]) {
   ]);
   const P: number[][] = [];
   for (const p of w.projectiles) if (p.active) P.push([r1(p.x), r1(p.y), r1(p.vx), r1(p.vy), KINDS.indexOf(p.kind), FX_LIST.indexOf(p.fx), p.r, p.age]);
-  return { k: 'snap', fr: w.frame, ph: w.phase, pf: w.phaseFrame, tl: w.timeLeft, sh: r1(w.shakeMag), win: w.winner, F, P, E: events };
+  const HZ = ['meteor', 'lightning', 'lava', 'wind', 'debris', 'icicle'];
+  const W = w.warnings.map((h) => [HZ.indexOf(h.kind), Math.round(h.x), Math.round(h.y), h.t, h.dur, h.dir]);
+  return { k: 'snap', W, wd: r1(w.wind), fr: w.frame, ph: w.phase, pf: w.phaseFrame, tl: w.timeLeft, sh: r1(w.shakeMag), win: w.winner, F, P, E: events };
 }
 
 /** Client: apply snapshot into its view world (no local physics). */
@@ -49,5 +51,8 @@ export function applySnapshot(w: World, s: any) {
     p.x = a[0]; p.y = a[1]; p.vx = a[2]; p.vy = a[3]; p.kind = KINDS[a[4]] ?? 'orb'; p.fx = FX_LIST[a[5]] ?? 'hit'; p.r = a[6]; p.age = a[7];
     k++;
   }
+  const HZ = ['meteor', 'lightning', 'lava', 'wind', 'debris', 'icicle'] as const;
+  w.warnings = (s.W ?? []).map((a: number[]) => ({ kind: HZ[a[0]], x: a[1], y: a[2], t: a[3], dur: a[4], dir: a[5] }));
+  w.wind = s.wd ?? 0;
   w.events = s.E ?? [];
 }

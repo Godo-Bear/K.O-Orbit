@@ -88,7 +88,7 @@ export interface CharDef {
 
 export interface GameEvent {
   type: 'hit' | 'shieldhit' | 'shieldbreak' | 'ko' | 'jump' | 'djump' | 'land' | 'whiff' | 'reflect' | 'counter'
-    | 'proj' | 'dodge' | 'ledge' | 'tech' | 'count' | 'go' | 'game' | 'charge' | 'clank' | 'respawn' | 'hazard';
+    | 'proj' | 'dodge' | 'ledge' | 'tech' | 'count' | 'go' | 'game' | 'charge' | 'clank' | 'respawn' | 'hazard' | 'bolt' | 'geyser';
   x: number; y: number;
   p?: number; // power / magnitude
   slot?: number; // fighter slot involved
@@ -97,13 +97,16 @@ export interface GameEvent {
   n?: number;
 }
 
+export type HazardKind = 'meteor' | 'lightning' | 'lava' | 'wind' | 'debris' | 'icicle';
+
 export interface MatchRules {
   mode: 'stock' | 'time' | 'stamina';
   stocks: number;
   timeSec: number; // 0 = no limit (stock/stamina)
   hp: number;
   stageId: string;
-  hazard?: 'meteor' | 'none';
+  /** 'stage' = the stage's own hazard; a specific kind forces it; 'none'/undefined = off */
+  hazard?: HazardKind | 'stage' | 'none';
   gravityMul?: number;
   damageMul?: number;
   objective?: 'win' | 'survive';

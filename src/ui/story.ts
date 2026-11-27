@@ -3,8 +3,9 @@ import { DEVICE_IDS, deviceLabel, input } from '../core/input';
 import { CHARACTERS, charById } from '../sim/characters';
 import { stageById } from '../sim/stages';
 import { drawPortrait, drawHeroCard } from '../render/rig';
+import { synth } from '../audio/synth';
 import type { SlotConfig } from '../sim/types';
-import { STORY, isStageUnlocked, isCharUnlocked, totalStars, type StoryStage } from '../story/campaign';
+import { STORY, TAUNTS, isStageUnlocked, isCharUnlocked, totalStars, type StoryStage } from '../story/campaign';
 import { el, btn, cycler, portraitCanvas, mount } from './dom';
 import { stagePreview } from './versus';
 import { storyMapCanvas } from './keyart';
@@ -34,6 +35,35 @@ export function buildStoryMatch(st: StoryStage, charId: string, device: string) 
   // easier difficulties: CPUs attack one at a time everywhere; Expert lets them all pile in
   const maxGangUp = d.v === 0 ? 1 : d.v === 3 ? undefined : st.rules.maxGangUp;
   return { rules: { ...st.rules, maxGangUp }, slots, story: st, seed: Math.floor(Math.random() * 1e6) };
+}
+
+/** Dramatic VS splash before a story fight (auto-continues; any button skips). */
+export function playStoryStage(app: App, index: number) {
+  const st = STORY[index];
+  if (!st) { app.story(); return; }
+  pick.selected = index;
+  const cfg = buildStoryMatch(st, pick.charId, pick.device);
+  const me = charById(pick.charId);
+  const foes = cfg.slots.filter((s) => s.team !== 0 && s.slot !== 0).map((s) => charById(s.charId));
+  const allies = cfg.slots.filter((s) => s.team === 0 && s.slot !== 0).map((s) => charById(s.charId));
+  const lead = st.enemies[0]?.charId === 'mirror' ? null : foes[0];
+  const taunt = lead ? TAUNTS[lead.id] : 'So you finally meet yourself. Only one of us walks away.';
+  let done = false;
+  const go = () => { if (done) return; done = true; clearTimeout(timer); app.startMatch('local', cfg, () => app.story()); };
+  const card = (c: ReturnType<typeof charById>, w: number, h: number, extra = '') => el('div', { class: `vs-card ${extra}` }, portraitCanvas(w, (ctx, ww, hh) => drawHeroCard(ctx, c, ww, hh), h), el('b', {}, c.name));
+  const screen = el('div', { class: 'vs-intro', on: { click: go } },
+    el('div', { class: 'vs-chapter' }, `${st.chapter} · Stage ${index + 1}`),
+    el('h1', { class: 'vs-title' }, st.title),
+    el('div', { class: 'vs-row' },
+      el('div', { class: 'vs-side left' }, card(me, 200, 230, 'you'), allies.map((a) => card(a, 120, 140, 'ally'))),
+      el('div', { class: 'vs-badge' }, 'VS'),
+      el('div', { class: 'vs-side right' }, foes.slice(0, 4).map((f, i) => card(f, i === 0 ? 200 : 120, i === 0 ? 230 : 140, i === 0 ? 'boss' : '')))),
+    el('div', { class: 'vs-taunt' }, el('b', {}, lead ? `${lead.name}: ` : 'Mirror: '), `“${taunt}”`),
+    el('div', { class: 'vs-objective' }, st.objective),
+    btn('FIGHT! ▶', go, 'primary big', { 'data-autofocus': '' }));
+  app.show(screen, () => { done = true; clearTimeout(timer); app.story(); }, 'wide vs');
+  synth.unlock(); synth.count(0);
+  const timer = window.setTimeout(go, 4200);
 }
 
 export function storyMapScreen(app: App): HTMLElement {
@@ -89,7 +119,7 @@ export function storyMapScreen(app: App): HTMLElement {
           cycler('Difficulty', DIFFICULTIES.map((x) => ({ v: x.v, label: x.label })), save.settings.difficulty, (v) => { save.settings.difficulty = v; persist(); renderBrief(); }),
           cycler('Fighter', CHARACTERS.map((c) => ({ v: c.id, label: isCharUnlocked(c.id) ? c.name : `🔒 ${c.name}`, disabled: !isCharUnlocked(c.id) })), pick.charId, (v) => { pick.charId = v; renderBrief(); }),
           cycler('Ctrl', DEVICE_IDS.map((d) => ({ v: d, label: deviceLabel(d) })), pick.device, (v) => { pick.device = v; }))),
-      btn('START STAGE ▶', () => app.startMatch('local', buildStoryMatch(st, pick.charId, pick.device), () => app.story()), 'primary big', { 'data-autofocus': '' }),
+      btn('START STAGE ▶', () => playStoryStage(app, i), 'primary big', { 'data-autofocus': '' }),
     );
   };
 

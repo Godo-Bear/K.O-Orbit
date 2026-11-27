@@ -18,7 +18,7 @@ const state = {
   slots: Array.from({ length: MAX_PLAYERS }, (_, i): VSlot => ({
     type: i === 0 ? 'HUMAN' : i === 1 ? 'CPU' : 'OFF', charId: CHARACTERS[i % 4].id, cpuLevel: 3, device: i === 0 ? 'kb1' : 'kb2', team: i % 2,
   })),
-  mode: 'stock' as MatchRules['mode'], stocks: 3, timeSec: 180, hp: 150, stageId: 'station', teams: false,
+  mode: 'stock' as MatchRules['mode'], stocks: 3, timeSec: 180, hp: 150, stageId: 'station', teams: false, hazards: true,
 };
 
 export function stagePreview(st: StageDef, w: number, h: number) {
@@ -90,6 +90,7 @@ export function versusScreen(app: App): HTMLElement {
         : cycler('Stocks', [1, 2, 3, 4, 5, 7, 10, 99].map((n) => ({ v: n, label: String(n) })), state.stocks, (v) => { state.stocks = v; }),
       state.mode === 'stamina' ? cycler('HP', [100, 150, 200, 300].map((n) => ({ v: n, label: String(n) })), state.hp, (v) => { state.hp = v; }) : null,
       toggle('Teams', state.teams, (v) => { state.teams = v; renderSlots(); }),
+      toggle('Hazards', state.hazards, (v) => { state.hazards = v; renderStages(); }),
       cycler('All CPUs', [{ v: 0, label: '—' }, ...Array.from({ length: 9 }, (_, k) => ({ v: k + 1, label: `Lv ${k + 1}` }))], 0, (v) => { if (!v) return; state.slots.forEach((s) => { s.cpuLevel = v; }); renderSlots(); }),
       btn('Fill CPUs', () => { const open = CHARACTERS.filter((c) => isCharUnlocked(c.id)); state.slots.forEach((s, i) => { if (s.type === 'OFF') { s.type = 'CPU'; s.charId = open[i % open.length].id; s.cpuLevel = 3 + (i % 5); } }); renderSlots(); }, 'small'),
       btn('Clear', () => { state.slots.forEach((s, i) => { if (i > 0) s.type = 'OFF'; }); renderSlots(); }, 'small'),
@@ -98,11 +99,16 @@ export function versusScreen(app: App): HTMLElement {
   };
 
   const stageRow = el('div', { class: 'stage-row' });
+  const stageInfo = el('div', { class: 'stage-info' });
   const renderStages = () => {
     stageRow.innerHTML = '';
+    const cur = STAGES.find((x) => x.id === state.stageId);
+    stageInfo.innerHTML = '';
+    if (cur) stageInfo.append(el('b', {}, cur.name), ` — ${cur.desc}`, cur.hazardText ? el('span', { class: state.hazards ? 'hz on' : 'hz' }, ` ⚠ ${state.hazards ? 'Hazard' : 'Hazard (off)'}: ${cur.hazardText}`) : '');
+    else stageInfo.append(el('b', {}, 'Random stage'), ' — a surprise every match.');
     for (const st of [...STAGES, null]) {
       const id = st ? st.id : 'random';
-      const b = btn([st ? stagePreview(st, 120, 60) : el('div', { class: 'rand-stage' }, '?'), el('span', {}, st ? st.name : 'Random')], () => { state.stageId = id; renderStages(); (stageRow.querySelector(`[data-stage="${id}"]`) as HTMLElement)?.focus(); }, `stage-card ${state.stageId === id ? 'sel' : ''}`, { 'data-stage': id });
+      const b = btn([st ? stagePreview(st, 120, 60) : el('div', { class: 'rand-stage' }, '?'), el('span', {}, st ? `${st.hazard && state.hazards ? '⚠ ' : ''}${st.name}` : 'Random')], () => { state.stageId = id; renderStages(); (stageRow.querySelector(`[data-stage="${id}"]`) as HTMLElement)?.focus(); }, `stage-card ${state.stageId === id ? 'sel' : ''}`, { 'data-stage': id });
       stageRow.append(b);
     }
   };
@@ -113,7 +119,7 @@ export function versusScreen(app: App): HTMLElement {
     if (state.teams && new Set(active.map((a) => a.s.team)).size < 2) { toast('Teams mode needs at least 2 different teams'); return; }
     const slots: SlotConfig[] = active.map(({ s, i }) => ({ slot: i, type: s.type as 'HUMAN' | 'CPU', charId: s.charId, cpuLevel: s.cpuLevel, device: s.device, team: state.teams ? s.team : -1 }));
     const stageId = state.stageId === 'random' ? STAGES[Math.floor(Math.random() * STAGES.length)].id : state.stageId;
-    const rules: MatchRules = { mode: state.mode, stocks: state.stocks, timeSec: state.mode === 'time' ? state.timeSec : 0, hp: state.hp, stageId };
+    const rules: MatchRules = { mode: state.mode, stocks: state.stocks, timeSec: state.mode === 'time' ? state.timeSec : 0, hp: state.hp, stageId, hazard: state.hazards ? 'stage' : 'none' };
     off();
     app.startMatch('local', { rules, slots, seed: Math.floor(Math.random() * 1e6) }, () => app.versus());
   };
@@ -143,6 +149,7 @@ export function versusScreen(app: App): HTMLElement {
     rulesWrap,
     el('div', { class: 'section-label' }, 'Stage'),
     stageRow,
+    stageInfo,
     el('div', { class: 'section-label' }, 'Fighters (P1–P10)'),
     slotsWrap,
     (() => {

@@ -121,7 +121,9 @@ class Synth {
         case 'go': this.count(0); break;
         case 'game': this.game(); break;
         case 'dodge': if (e.n === 0) this.shield(); else this.burst(0.1, 0.1, 2000, 1); break;
-        case 'hazard': this.tone('sawtooth', 200, 80, 0.6, 0.12); break;
+        case 'hazard': this.burst(0.9, 0.12, 900, 0.6, 'bandpass', 300); break;
+        case 'bolt': this.burst(0.6, 0.7, 4000, 0.5, 'highpass'); this.tone('sawtooth', 120, 30, 0.7, 0.4); break;
+        case 'geyser': this.burst(0.8, 0.5, 500, 0.6, 'lowpass', 120); break;
       }
     }
   }
